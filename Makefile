@@ -29,7 +29,7 @@ clean-node3:
 
 run-node1: export IPFS_LOGGING = warning
 run-node1:
-	atlant-go -E 0x0 -F var/fs1 -S var/state1 -L ":33771" -W ":33781" -l 5 $(COMMAND)
+	atlant-go -E 0x0  -F var/fs1 -S var/state1 -L ":33771" -W ":33781" -l 5 $(COMMAND)
 
 run-node2: export IPFS_LOGGING = warning
 run-node2:
@@ -38,6 +38,15 @@ run-node2:
 run-node3: export IPFS_LOGGING = warning
 run-node3:
 	atlant-go -E 0x0 -F var/fs3 -S var/state3 -L ":33773" -W ":33783" -l 5 $(COMMAND)
+
+test-node1-api:
+	go test -short -E 0x0 -F var/fs1 -S var/state1 -L :33771 -W 0.0.0.0:33781
+
+test-node2-api:
+	go test -short -E 0x0 -F var/fs2 -S var/state2 -L :33772 -W 0.0.0.0:33782
+
+test-node3-api:
+	go test -short -E 0x0 -F var/fs3 -S var/state3 -L :33773 -W 0.0.0.0:33783
 
 install:
 	go install -tags testing github.com/AtlantPlatform/atlant-go
