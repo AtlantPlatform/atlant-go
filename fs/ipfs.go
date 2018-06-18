@@ -16,6 +16,7 @@ import (
 	"github.com/AtlantPlatform/go-ipfs/core/corerepo"
 	"github.com/AtlantPlatform/go-ipfs/core/coreunix"
 	"github.com/AtlantPlatform/go-ipfs/exchange/bitswap"
+	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
 	ipld "github.com/AtlantPlatform/go-ipfs/go-ipld-format"
 	ipnet "github.com/AtlantPlatform/go-ipfs/go-libp2p-interface-pnet"
 	peer "github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
@@ -111,6 +112,10 @@ func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 		return nil, err
 	}
 	ref.Version = node.Cid().String()
+	if err := s.PinNewest(ref, 3); err != nil {
+		err = fmt.Errorf("failed to pin object file, it will be soon collected by GC: %v", err)
+		return nil, err
+	}
 	meta.SetVersion(ref.Version)
 	ref.SetMeta(&meta)
 	return &ref, nil
@@ -270,6 +275,38 @@ func (s *ipfsStore) PinObject(ref ObjectRef) error {
 	return s.node.Pinning.Flush()
 }
 
+func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
+	if err := s.PinObject(ref); err != nil {
+		return err
+	}
+	if ref.VersionPrevious == "" || depth < 0 {
+		return nil
+	}
+
+	prevVer := ref.VersionPrevious
+	for prevVer != "" {
+		if depth--; depth < 0 {
+			objRef := s.cidToObjectRef(s.node.Context(), prevVer)
+			prevVer = objRef.VersionPrevious
+			id, err := cid.Parse(objRef.Version)
+			if err != nil {
+				return errors.New(fmt.Sprintf("failed to parse ID to CID: %v", err))
+			}
+			if _, ok, _ := s.node.Pinning.IsPinned(id); !ok {
+				continue
+			}
+			if err := s.node.Pinning.Unpin(s.node.Context(), id, true); err != nil {
+				return err
+			}
+			if _, ok, _ := s.node.Pinning.IsPinned(id); ok {
+				return errors.New(fmt.Sprintf("failed object unpinning: cid %s", id.String()))
+			}
+			log.Debugf("successful unpinning cid: %s\n", id.String())
+		}
+	}
+	return s.node.Pinning.Flush()
+}
+
 func (s *ipfsStore) cidToObjectRef(ctx context.Context, cid string) *ObjectRef {
 	p, err := ipath.ParseCidToPath(cid)
 	if err != nil {
@@ -412,7 +449,6 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 		cfg.Permanent = false
 		cfg.NilRepo = true
 	}
-
 	n, err := core.NewNode(context.Background(), cfg)
 	if err != nil {
 		return nil, err

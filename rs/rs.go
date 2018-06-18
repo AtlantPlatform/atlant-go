@@ -611,7 +611,7 @@ func (r *recordStore) handleEvent(ev *EventAnnounce, timeout time.Duration) erro
 		})); err != nil {
 			log.Warningf("failed to update record: %v", err)
 		}
-		if err := r.fs.PinObject(*ref); err != nil {
+		if err := r.fs.PinNewest(*ref, 3); err != nil {
 			log.WithFields(updateFields).Errorln("failed to pin object: %v", err)
 			return nil
 		}
