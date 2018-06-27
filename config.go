@@ -29,6 +29,12 @@ var (
 		EnvVar: "AN_STATE_DIR",
 		Value:  "var/state",
 	})
+	stateGcInterval = app.String(cli.StringOpt{
+		Name:   "state-gcinterval",
+		Desc:   "Set a default GC interval for the state DB. Setting it lower will result in increased CPU load.",
+		EnvVar: "AN_STATE_GCINTERVAL",
+		Value:  "5m",
+	})
 	fsDir = app.String(cli.StringOpt{
 		Name:   "F fs-dir",
 		Desc:   "Directory prefix for IPFS filesystem storage.",
@@ -131,9 +137,9 @@ var (
 var (
 	mainBootstrapPeers = []string{}
 	testBootstrapPeers = []string{
-		"/dns4/node-dev1.atlant.io/tcp/33770/ipfs/14V8BSLoBVMAwiAu4uw4sut686XEjRNEumedKL1cRC4JgBvoL",
-		"/dns4/node-dev2.atlant.io/tcp/33770/ipfs/14V8BhNy8A5qz9oCGnBzabNWiJwrajb8Nxe49XtR7FDDHmHfz",
-		"/dns4/node-dev3.atlant.io/tcp/33770/ipfs/14V8BaUvNwjdvQ6pawWW6CApQAC2kKu6YWLhpWAxHqcZc7rbY",
+		"/dns4/node-dev1.atlant.io/tcp/33770/ipfs/14V8BdHqHhExw4645xB3Xa2iheBrjYCMr7StXWUA9hBTqp8cM",
+		"/dns4/node-dev2.atlant.io/tcp/33770/ipfs/14V8Bds64aUZJx6ag2TUXozS78Sko6fJ8kbkHF4bgvv9zgR6j",
+		"/dns4/node-dev3.atlant.io/tcp/33770/ipfs/14V8BVs2FyU5qREKd68SgPqccrChiWX2uKdeeMtUhGfqJZjyK",
 		"/dns4/node-dev4.atlant.io/tcp/33770/ipfs/14V8BTKR9MjKhfqgT4ybBjSb7kZHXmwvgBba7ujhN6ecTXJji",
 	}
 )

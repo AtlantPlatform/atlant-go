@@ -13,13 +13,11 @@ import (
 var DefaultMainDomains = []string{
 	"node-main.atlant-dev.io",
 	"node-main.atlant.io",
-	"node-main.frostchain.com",
 }
 
 var DefaultTestDomains = []string{
 	"node-test.atlant-dev.io",
 	"node-test.atlant.io",
-	"node-test.frostchain.com",
 }
 
 func NewDNSAuth(domains []string, dur time.Duration) Auth {

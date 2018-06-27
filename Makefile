@@ -50,3 +50,86 @@ test-node3-api:
 
 install:
 	go install -tags testing github.com/AtlantPlatform/atlant-go
+
+GOTOOLS = \
+	github.com/golang/dep/cmd/dep \
+	gopkg.in/alecthomas/gometalinter.v2
+
+PACKAGES=$(shell go list ./... | grep -v '/vendor/')
+
+BUILD_FLAGS = -ldflags "-X github.com/AtlantPlatform/atlant-go/version.GitCommit=`git rev-parse --short=8 HEAD`"
+
+### Distribution
+
+# dist builds binaries for all platforms and packages them for distribution
+dist:
+	sh -c "'$(CURDIR)/deploy/dist.sh'"
+
+### Tools & dependencies
+
+check-tools:
+	@# https://stackoverflow.com/a/25668869
+	@echo "Found tools: $(foreach tool,$(notdir $(GOTOOLS)),\
+        $(if $(shell which $(tool)),$(tool),$(error "No $(tool) in PATH")))"
+
+get-tools:
+	@echo "--> Installing tools"
+	go get -u -v $(GOTOOLS)
+	@gometalinter.v2 --install
+
+update-tools:
+	@echo "--> Updating tools"
+	@go get -u $(GOTOOLS)
+
+#Run this from CI
+get-vendor-deps:
+	@rm -rf vendor/
+	@echo "--> Running dep"
+	@dep ensure -vendor-only
+
+#Run this locally.
+ensure-deps:
+	@rm -rf vendor/
+	@echo "--> Running dep"
+	@dep ensure
+
+draw-deps:
+	@# requires brew install graphviz or apt-get install graphviz
+	go get github.com/RobotsAndPencils/goviz
+	@goviz -i github.com/AtlantPlatform/atlant-go -d 3 | dot -Tpng -o dependency-graph.png
+
+### Formatting, linting, and vetting
+
+metalinter:
+	@echo "--> Running linter"
+	@gometalinter.v2 --vendor --deadline=600s --disable-all  \
+		--enable=deadcode \
+		--enable=gosimple \
+	 	--enable=misspell \
+		--enable=safesql \
+		./...
+		#--enable=gas \
+		#--enable=maligned \
+		#--enable=dupl \
+		#--enable=errcheck \
+		#--enable=goconst \
+		#--enable=gocyclo \
+		#--enable=goimports \
+		#--enable=golint \ <== comments on anything exported
+		#--enable=gotype \
+	 	#--enable=ineffassign \
+	   	#--enable=interfacer \
+	   	#--enable=megacheck \
+	   	#--enable=staticcheck \
+	   	#--enable=structcheck \
+	   	#--enable=unconvert \
+	   	#--enable=unparam \
+		#--enable=unused \
+	   	#--enable=varcheck \
+		#--enable=vet \
+		#--enable=vetshadow \
+
+metalinter-all:
+	@echo "--> Running linter (all)"
+	gometalinter.v2 --vendor --deadline=600s --enable-all --disable=lll ./...
+

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/dgraph-io/badger"
 )
@@ -30,7 +31,20 @@ func newBadgerStore(prefix string, opts ...storeOpt) (*badgerStore, error) {
 		return nil, err
 	}
 	s.db = db
+	go s.runGC(s.opts.GCRatio, s.opts.GCInterval)
 	return s, nil
+}
+
+func (s *badgerStore) runGC(ratio float64, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for range ticker.C {
+	again:
+		err := s.db.RunValueLogGC(ratio)
+		if err == nil {
+			goto again
+		}
+	}
 }
 
 func (s *badgerStore) View(k *Key, fn PeekFunc) error {

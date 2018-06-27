@@ -24,10 +24,10 @@ import (
 	"github.com/AtlantPlatform/atlant-go/fs"
 	"github.com/AtlantPlatform/atlant-go/rs"
 	"github.com/AtlantPlatform/atlant-go/state"
+	"github.com/AtlantPlatform/atlant-go/version"
 )
 
 var app = cli.App("atlant-go", "ATLANT Node")
-var appVersion = "1.0.0-rc1"
 
 var (
 	ipfsConfigFile    = "config"
@@ -241,7 +241,9 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 			log.Warningf("failed to close IPFS store: %v", err)
 		}
 	})
-	stateStore, err := state.NewIndexedStoreBadger(*stateDir)
+	log.Debugln("NewIndexedStoreBadger open state DB")
+	stateStore, err := state.NewIndexedStoreBadger(*stateDir,
+		state.GCIntervalOption(duration(*stateGcInterval, 5*time.Minute)))
 	if err != nil {
 		closer.Fatalln("NewIndexedStoreBadger failed:", err)
 	}
@@ -250,13 +252,14 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 			log.Warningf("failed to close the state store: %v", err)
 		}
 	})
+	log.Debugln("NewPlanetaryContext starts process")
 	if err := func() (err error) {
 		defer catcher.Catch(catcher.RecvError(&err, true))
 		env := "main"
 		if *envTestnet {
 			env = "test"
 		}
-		ctx := NewPlanetaryContext(context.Background(), env, appVersion, fileStore, stateStore)
+		ctx := NewPlanetaryContext(context.Background(), env, version.Version, fileStore, stateStore)
 		fn(ctx)
 		return
 	}(); err != nil {
@@ -266,7 +269,7 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 
 func versionCmd(c *cli.Cmd) {
 	c.Action = func() {
-		fmt.Fprintf(os.Stdout, "atlant-go version %s\n", appVersion)
+		fmt.Fprintf(os.Stdout, "atlant-go version %s\n", version.Version)
 		fmt.Fprintln(os.Stderr, `atlant-go Copyright (C) 2018 ATLANT
     This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
     This is free software, and you are welcome to redistribute it
