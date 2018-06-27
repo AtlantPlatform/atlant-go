@@ -14,6 +14,7 @@ var/state
 var/fs
 var/log
 vendor/
+build/
 
 var/fs1/
 var/fs2/

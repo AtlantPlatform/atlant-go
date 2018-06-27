@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"sync"
-	"syscall"
 
 	log "github.com/sirupsen/logrus"
 
@@ -571,13 +570,13 @@ func (s *ipfsStore) nodesForPaths(ctx context.Context, paths []string) ([]ipld.N
 }
 
 func (s *ipfsStore) DiskStats() (*DiskStats, error) {
-	var fs syscall.Statfs_t
-	if err := syscall.Statfs(s.prefix, &fs); err != nil {
-		return nil, err
-	}
+	// var fs syscall.Statfs_t
+	// if err := syscall.Statfs(s.prefix, &fs); err != nil {
+	// 	return nil, err
+	// }
 	ds := &DiskStats{
-		BytesAll:  fs.Blocks * uint64(fs.Bsize),
-		BytesFree: fs.Bfree * uint64(fs.Bsize),
+		// BytesAll:  fs.Blocks * uint64(fs.Bsize),
+		// BytesFree: fs.Bfree * uint64(fs.Bsize),
 	}
 	ds.BytesUsed = ds.BytesAll - ds.BytesFree
 	return ds, nil
