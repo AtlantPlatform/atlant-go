@@ -18,6 +18,7 @@ import (
 	"github.com/xlab/closer"
 	"strings"
 	"time"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 func init() {
@@ -129,6 +130,34 @@ func TestKYCStatus(t *testing.T) {
 		return
 	}
 	r.Equal(200, resp.StatusCode)
+}
+
+func TestKYCApprove(t *testing.T) {
+	var tx types.Transaction
+	r := require.New(t)
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/kycApprove", *webListenAddr))
+	r.NoError(err)
+	r.Equal(200, resp.StatusCode)
+	bytes, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	r.NoError(err)
+	err = json.Unmarshal(bytes, &tx)
+	r.NoError(err)
+	r.NotEqual(len(tx.String()), 0)
+}
+
+func TestKYCSuspend(t *testing.T) {
+	var tx types.Transaction
+	r := require.New(t)
+	resp, err := http.Get(fmt.Sprintf("http://%s/api/v1/kycSuspend", *webListenAddr))
+	r.NoError(err)
+	r.Equal(200, resp.StatusCode)
+	bytes, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	r.NoError(err)
+	err = json.Unmarshal(bytes, &tx)
+	r.NoError(err)
+	r.NotEqual(len(tx.String()), 0)
 }
 
 func TestEthBalance(t *testing.T) {
