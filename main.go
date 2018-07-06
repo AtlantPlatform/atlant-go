@@ -47,6 +47,7 @@ type testingCmd struct {
 func main() {
 	app.Command("init", "Initialize node and its IPFS repo.", nodeInitCmd)
 	app.Command("version", "Show version info.", versionCmd)
+	app.Command("verify", "Verify node.", verify)
 	for _, cmd := range testingCommands {
 		if len(cmd.Name) == 0 {
 			panic("found an unnamed testing command")
@@ -264,6 +265,23 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 		return
 	}(); err != nil {
 		closer.Fatalln(err)
+	}
+}
+
+func verify(cmd *cli.Cmd) {
+	code := cmd.StringArg("CODE", "", "Specify pin code to associate Node with client.")
+	cmd.Action = func() {
+		if len(*code) == 0 {
+			log.Fatalln("verification failed: empty pin code")
+		}
+		runWithPlanetaryContext(func(ctx PlanetaryContext) {
+			sign, err := ctx.FileStore().VerifyNode(*code)
+			if err != nil {
+				log.Fatalf("verification failed: %v\n", err)
+			}
+			log.Infof("sign: %s\n", sign)
+		})
+
 	}
 }
 

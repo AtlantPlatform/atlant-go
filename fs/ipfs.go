@@ -18,9 +18,9 @@ import (
 	"github.com/AtlantPlatform/go-ipfs/exchange/bitswap"
 	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
 	ipld "github.com/AtlantPlatform/go-ipfs/go-ipld-format"
-	ipnet "github.com/AtlantPlatform/go-ipfs/go-libp2p-interface-pnet"
-	peer "github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
-	pnet "github.com/AtlantPlatform/go-ipfs/go-libp2p-pnet"
+	"github.com/AtlantPlatform/go-ipfs/go-libp2p-interface-pnet"
+	"github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
+	"github.com/AtlantPlatform/go-ipfs/go-libp2p-pnet"
 	"github.com/AtlantPlatform/go-ipfs/namesys"
 	ipath "github.com/AtlantPlatform/go-ipfs/path"
 	"github.com/AtlantPlatform/go-ipfs/path/resolver"
@@ -31,6 +31,8 @@ import (
 
 	"github.com/AtlantPlatform/atlant-go/logging"
 	"github.com/AtlantPlatform/atlant-go/proto"
+	"encoding/hex"
+	"encoding/base64"
 )
 
 func init() {
@@ -679,6 +681,19 @@ func (s *ipfsStore) SignData(nodeID string, data []byte) ([]byte, error) {
 		return nil, errors.New("sign nodeID mismatch")
 	}
 	return s.node.PrivateKey.Sign(data)
+}
+
+func (s *ipfsStore) VerifyNode(code string) (string, error) {
+	id, err := peer.IDFromPrivateKey(s.node.PrivateKey)
+	if err != nil {
+		return "", err
+	}
+	signed, err := s.node.PrivateKey.Sign([]byte(code))
+	if err != nil {
+		return "", err
+	}
+	jsoned := fmt.Sprintf("[%q, %q]", hex.EncodeToString(signed), id.Pretty())
+	return base64.StdEncoding.EncodeToString([]byte(jsoned)), nil
 }
 
 func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {

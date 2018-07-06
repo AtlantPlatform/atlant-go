@@ -23,6 +23,7 @@ type Object struct {
 type PlanetaryFileStore interface {
 	NodeID() string
 	SignData(peerID string, data []byte) ([]byte, error)
+	VerifyNode(code string) (string, error)
 
 	PubSub() (PlanetaryPubSub, error)
 	Listener() PlanetaryListener
