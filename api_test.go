@@ -1,3 +1,7 @@
+// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Use of this source code is governed by Microsoft Reference Source
+// License (MS-RSL) that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -9,16 +13,17 @@ import (
 	"testing"
 
 	"flag"
+	"strings"
+	"time"
+
 	"github.com/AtlantPlatform/atlant-go/api"
 	"github.com/AtlantPlatform/atlant-go/contracts"
 	"github.com/AtlantPlatform/atlant-go/proto"
 	"github.com/AtlantPlatform/atlant-go/rs"
+	"github.com/ethereum/go-ethereum/core/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/xlab/closer"
-	"strings"
-	"time"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 func init() {

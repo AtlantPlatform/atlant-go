@@ -1,3 +1,7 @@
+# Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+# Use of this source code is governed by Microsoft Reference Source
+# License (MS-RSL) that can be found in the LICENSE file.
+
 # fs.capnp
 @0xe07347b5287484b4;
 $import "/go.capnp".package("proto");

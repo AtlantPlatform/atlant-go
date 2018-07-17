@@ -1,3 +1,7 @@
+// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Use of this source code is governed by Microsoft Reference Source
+// License (MS-RSL) that can be found in the LICENSE file.
+
 package contracts
 
 import (
@@ -7,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/AtlantPlatform/ethfw"
 )
 
 type kycManager struct {
@@ -70,7 +74,6 @@ func (k *kycManager) AccountStatus(account string) (KYCStatus, error) {
 		return StatusUnknown, nil
 	}
 }
-
 
 func (k *kycManager) ApproveAddr(account string) (*types.Transaction, error) {
 	opts, err := k.cli.TransactOpts(context.Background(), common.HexToAddress(k.m.ownAddr), k.m.pass)

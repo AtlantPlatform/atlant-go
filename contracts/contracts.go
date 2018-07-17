@@ -1,3 +1,7 @@
+// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Use of this source code is governed by Microsoft Reference Source
+// License (MS-RSL) that can be found in the LICENSE file.
+
 package contracts
 
 import (
@@ -71,11 +75,10 @@ func NewManager(session string, store rs.PlanetaryRecordStore, ethAddr, pkPath, 
 		store:   store,
 		session: session,
 		keyPath: pkPath,
-		pass:	 passphrase,
+		pass:    passphrase,
 		ownAddr: ethAddr,
 		ringMux: new(sync.RWMutex),
 		fails:   make(map[string]int),
-
 	}
 	if testnet {
 		m.ring = hashring.New(DefaultTestNodes)
