@@ -85,7 +85,7 @@ func (d *dnsAuth) refresh() {
 				}
 				for _, tag := range tags {
 					switch p := Permission(tag); p {
-					case RecordWritePermission:
+					case RecordWritePermission, RecordSyncPermission:
 						entry.Permissions = append(entry.Permissions, p)
 					default:
 						log.WithField("domain", domain).Infoln("unknown permission tag:", tag)
