@@ -135,6 +135,9 @@ func (s *badgerStore) RangePeek(b Bucket, fn PeekFunc) (*RangeOptions, error) {
 	err := s.db.View(func(tx *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
+		if b.RangeOptions.Prefetch > 0 {
+			opts.PrefetchSize = b.RangeOptions.Prefetch
+		}
 		it := tx.NewIterator(opts)
 		defer it.Close()
 
@@ -161,9 +164,12 @@ func (s *badgerStore) RangePeek(b Bucket, fn PeekFunc) (*RangeOptions, error) {
 
 func (s *badgerStore) RangeModify(b Bucket, fn ModifyFunc) (*RangeOptions, error) {
 	var opt *RangeOptions
-	err := s.db.Update(func(tx *badger.Txn) error {
+	err := s.db.View(func(tx *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
+		if b.RangeOptions.Prefetch > 0 {
+			opts.PrefetchSize = b.RangeOptions.Prefetch
+		}
 		it := tx.NewIterator(opts)
 		defer it.Close()
 
@@ -182,8 +188,11 @@ func (s *badgerStore) RangeModify(b Bucket, fn ModifyFunc) (*RangeOptions, error
 				continue
 			} else if err != nil && err != ErrRangeStop {
 				return err
-			} else if err := tx.Set(item.Key(), vv); err != nil {
-				return err
+			}
+			if setErr := s.db.Update(func(tx *badger.Txn) error {
+				return tx.Set(item.Key(), vv)
+			}); setErr != nil {
+				return setErr
 			}
 			if err == ErrRangeStop {
 				return nil

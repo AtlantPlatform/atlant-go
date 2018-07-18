@@ -34,6 +34,7 @@ type PlanetaryFileStore interface {
 	Client() PlanetaryClient
 
 	PinObject(ref ObjectRef) error
+	UnpinObject(ref ObjectRef) error
 	PinNewest(ref ObjectRef, depth int) error
 
 	PutObject(ctx context.Context, ref ObjectRef, userMeta []byte, body io.ReadCloser) (*ObjectRef, error)
