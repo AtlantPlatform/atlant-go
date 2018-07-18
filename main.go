@@ -127,6 +127,11 @@ func main() {
 			if len(*clusterName) == 0 {
 				*clusterName = ctx.SessionID()
 			}
+			if err := rs.GC(ctx.FileStore(), ctx.StateStore(), 3); err != nil {
+				log.Warningln("Record GC failed with:", err)
+			} else {
+				log.Debugln("Record GC completed")
+			}
 			store, err := rs.NewPlanetaryRecordStore(ctx.NodeID(), ctx.FileStore(), ctx.StateStore())
 			if err != nil {
 				log.Fatalln(err)
@@ -167,7 +172,7 @@ func main() {
 			}
 
 			time.Sleep(duration(*fsWarmupDur, 5*time.Second))
-			if err := store.Sync(duration(*fsSyncTimeout, 30*time.Minute)); err != nil {
+			if err := store.Sync(duration(*fsSyncTimeout, 10*time.Minute)); err != nil {
 				log.Errorln(err)
 				closer.Fatalln(err)
 			}

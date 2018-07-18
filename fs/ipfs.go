@@ -281,6 +281,18 @@ func (s *ipfsStore) PinObject(ref ObjectRef) error {
 	return s.node.Pinning.Flush()
 }
 
+func (s *ipfsStore) UnpinObject(ref ObjectRef) error {
+	id, err := cid.Parse(ref.Version)
+	if err != nil {
+		log.WithFields(logging.WithFn()).Errorln("failed to parse object CID:", err)
+		return err
+	}
+	if err := s.node.Pinning.Unpin(s.node.Context(), id, true); err != nil {
+		return err
+	}
+	return s.node.Pinning.Flush()
+}
+
 func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 	if err := s.PinObject(ref); err != nil {
 		return err

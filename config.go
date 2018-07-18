@@ -74,7 +74,7 @@ var (
 		Name:   "sync-timeout",
 		Desc:   "Sets the timeout for IPFS storage record sync.",
 		EnvVar: "AN_FS_SYNC_TIMEOUT",
-		Value:  "30m",
+		Value:  "10m",
 	})
 	fsListenAddr = app.String(cli.StringOpt{
 		Name:   "L fs-listen-addr",

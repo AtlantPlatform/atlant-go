@@ -79,6 +79,36 @@ type PlanetaryRecordStore interface {
 	Close() error
 }
 
+func GC(fileStore fs.PlanetaryFileStore, stateStore state.IndexedStore, maxVersions int) error {
+	b := state.NewBucket(state.BucketRecords, &state.RangeOptions{
+		Prefetch: 100,
+	})
+	_, err := stateStore.RangeModify(b, proto.RecordModify(func(k *state.Key, v *proto.Record) (*proto.Record, error) {
+		if v.Previous().Len() <= maxVersions {
+			return nil, state.ErrNoUpdate
+		}
+		rec := proto.AutoNewRecord(capn.NewBuffer(nil))
+		rec.SetId(v.Id())
+		rec.SetPath(v.Path())
+		rec.SetCreatedAt(v.CreatedAt())
+		ver := proto.AutoNewRecordVersion(capn.NewBuffer(nil))
+		ver.SetAnnounce(v.Current().Announce())
+		ver.SetVersion(v.Current().Version())
+		rec.SetCurrent(ver)
+		newPrevious, removed := proto.CapRecordVersions(v.Previous(), maxVersions)
+		rec.SetPrevious(newPrevious)
+		for _, versionID := range removed {
+			if err := fileStore.UnpinObject(fs.ObjectRef{
+				Version: versionID,
+			}); err != nil {
+				log.Debugln("failed to unpin during GC:", versionID, err)
+			}
+		}
+		return &rec, nil
+	}))
+	return err
+}
+
 func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, stateStore state.IndexedStore) (PlanetaryRecordStore, error) {
 	outboundAnnounces := make(chan *EventAnnounce, 1024)
 	inboundAnnounces := make(chan *EventAnnounce, 1024)

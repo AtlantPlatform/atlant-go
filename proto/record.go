@@ -103,3 +103,20 @@ func AppendRecordVersion(list RecordVersion_List, ver RecordVersion) RecordVersi
 	newList.Set(list.Len(), ver)
 	return newList
 }
+
+func CapRecordVersions(list RecordVersion_List, size int) (RecordVersion_List, []string) {
+	if size >= list.Len() {
+		return list, nil
+	}
+	newList := NewRecordVersionList(capn.NewBuffer(nil), size)
+	prevArr := list.ToArray()
+	lastOffset := len(prevArr) - 1
+	for i := 0; i < size; i++ {
+		newList.Set(i, prevArr[lastOffset-i])
+	}
+	removed := make([]string, 0, len(prevArr)-size)
+	for i := 0; i < len(prevArr)-size; i++ {
+		removed = append(removed, prevArr[i].Version())
+	}
+	return newList, removed
+}
