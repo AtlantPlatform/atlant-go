@@ -167,7 +167,7 @@ func main() {
 			}
 
 			time.Sleep(duration(*fsWarmupDur, 5*time.Second))
-			if err := store.Sync(); err != nil {
+			if err := store.Sync(duration(*fsSyncTimeout, 30*time.Minute)); err != nil {
 				log.Errorln(err)
 				closer.Fatalln(err)
 			}

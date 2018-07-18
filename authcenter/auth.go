@@ -33,6 +33,7 @@ type Permission string
 
 const (
 	RecordWritePermission Permission = "write"
+	RecordSyncPermission  Permission = "sync"
 )
 
 type Entry struct {

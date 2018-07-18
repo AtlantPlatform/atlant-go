@@ -29,7 +29,7 @@ const (
 )
 
 func (r *recordStore) aliveNodes(ctx context.Context, nodeIDs []string) []string {
-	var alive []string
+	alive := make(map[string]struct{}, 100)
 	wg := new(sync.WaitGroup)
 	ctx, cancelFn := context.WithTimeout(ctx, 15*time.Second)
 	defer cancelFn()
@@ -39,12 +39,16 @@ func (r *recordStore) aliveNodes(ctx context.Context, nodeIDs []string) []string
 			defer wg.Done()
 			r.outboundWork()
 			if state := r.pingNode(ctx, nodeID); state == stateAlive {
-				alive = append(alive, nodeID)
+				alive[nodeID] = struct{}{}
 			}
 		}(nodeID)
 	}
 	wg.Wait()
-	return alive
+	aliveList := make([]string, 0, len(alive))
+	for id := range alive {
+		aliveList = append(aliveList, id)
+	}
+	return aliveList
 }
 
 func (r *recordStore) pingNode(ctx context.Context, nodeID string) nodeState {

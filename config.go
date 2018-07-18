@@ -70,6 +70,12 @@ var (
 		EnvVar: "AN_FS_WARMUP_DUR",
 		Value:  "5s",
 	})
+	fsSyncTimeout = app.String(cli.StringOpt{
+		Name:   "sync-timeout",
+		Desc:   "Sets the timeout for IPFS storage record sync.",
+		EnvVar: "AN_FS_SYNC_TIMEOUT",
+		Value:  "30m",
+	})
 	fsListenAddr = app.String(cli.StringOpt{
 		Name:   "L fs-listen-addr",
 		Desc:   "Sets IPFS listen address to communicate with peers.",

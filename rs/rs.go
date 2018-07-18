@@ -66,7 +66,7 @@ type PlanetaryRecordStore interface {
 	ExportRecords(ctx context.Context, wr io.Writer) error
 	WalkRecords(ctx context.Context, root string, fn RecordWalkFunc) error
 
-	Sync() error
+	Sync(timeout time.Duration) error
 	IsReady() bool
 	WaitInbound(timeout time.Duration)
 	WaitOutbound(timeout time.Duration)
@@ -194,13 +194,13 @@ func (r *recordStore) Close() error {
 
 var ErrNotSynced = errors.New("not synced")
 
-func (r *recordStore) Sync() error {
+func (r *recordStore) Sync(timeout time.Duration) error {
 	var syncCandidates []string
 	entries := authcenter.Default.Entries()
 	for _, e := range entries {
 		if e.Key == r.nodeID {
 			continue
-		} else if e.HasPermissions(authcenter.RecordWritePermission) {
+		} else if e.HasPermissions(authcenter.RecordSyncPermission) {
 			syncCandidates = append(syncCandidates, e.Key)
 		}
 	}
@@ -211,7 +211,7 @@ func (r *recordStore) Sync() error {
 	} else {
 		log.Debugln("found sync candidates:", len(syncCandidates))
 	}
-	ctx, cancelFn := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancelFn := context.WithTimeout(context.Background(), timeout)
 	defer cancelFn()
 	alive := r.aliveNodes(ctx, syncCandidates)
 	if len(alive) == 0 {
@@ -237,6 +237,7 @@ func (r *recordStore) Sync() error {
 	}
 	rC := make(chan *proto.Record, 100)
 	go r.collectRecords(ctx, alive, rC)
+	log.Infoln("sync has started with timeout", timeout)
 	if err := r.startSync(ctx, rC); err != nil {
 		err = fmt.Errorf("failed to sync store: %v", err)
 		return err
