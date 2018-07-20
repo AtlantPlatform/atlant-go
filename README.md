@@ -8,9 +8,6 @@ The node is designed to poll two main smart contract sets in order to fetch secu
 All of this together helps to create smooth, compliant ATLANT Platform operations and performance, thus facilitating optimal experience for all platform participants.
 As per the ATLANT White Paper, both ATL token holders and PTO token holders can derive value from operations conducted on the Platform, provided that two main requirements are met: being a verified individual (having KYC details completed and registered with ATLANT) and running an ATLANT node, which helps to secure the network by distributing PTO data globally, thus increasing redundancy.
 
-The code is written in Go and licensed under GNU GPLv3, see [LICENSE](/LICENSE).
-
-
 ### Setup
 
 Get a pre-built binary for your platform in [releases](https://github.com/AtlantPlatform/atlant-go/releases) section or compile manually after installing [Go](https://golang.org/dl/):
