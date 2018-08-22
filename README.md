@@ -132,6 +132,40 @@ For all Ethereum info methods above, you can specify any specific account addres
 * `GET /api/v1/logs` — lists all available log files, each log file is rotated daily;
 * `GET /api/v1/log/:year/:month/:day` — access a specific log file by day, e.g. `/2018/04/23`.
 
+### Lite CLI
+
+`atlant-lite` implements a light client for the network, allowing to browse and upload files by calling the API of a full node.
+
+```
+$ go get github.com/AtlantPlatform/atlant-go/cmd/atlant-lite
+
+$ atlant-lite
+
+Usage: atlant-lite [OPTIONS] COMMAND [arg...]
+
+Options:
+  -A, --addr   Full node address (default "localhost:33780")
+
+Commands:
+  ping         Ping node and get its ID
+  version      Get node version
+  put          Put an object into the store
+  get          Get object contents from the store
+  meta         Get object meta data from the store
+  delete       Delete object from a store
+  versions     List all object versions
+  ls           List all objects and sub-directories in a prefix
+
+Run 'atlant-lite COMMAND --help' for more information on a command.
+```
+
+To make calls into the official testet, use either node address or an alias ("testnet" for any node, "testnetN" for node N), e.g.
+
+```
+$ atlant-lite -A testnet version
+1.0.0-rc2
+```
+
 ### License
 
 Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
