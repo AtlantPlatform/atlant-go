@@ -136,20 +136,6 @@ var (
 		Value:     "",
 		HideValue: true,
 	})
-	ethSignPath = app.String(cli.StringOpt{
-		Name:      "sign",
-		Desc:      "Specify private key location.",
-		EnvVar:    "AN_TX_SIGN",
-		Value:     "",
-		HideValue: true,
-	})
-	ethPass = app.String(cli.StringOpt{
-		Name:      "password",
-		Desc:      "Specify passphrase for eth account.",
-		EnvVar:    "AN_ETHEREUM_PASS",
-		Value:     "",
-		HideValue: true,
-	})
 )
 
 // use atlant-keygen to generate a custom key

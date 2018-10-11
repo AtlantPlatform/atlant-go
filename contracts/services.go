@@ -9,16 +9,15 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type kycManager struct {
 	baseContract
-	cli ethfw.Client
 }
 
 func (m *manager) bindKYC(kycAddress string, abi []byte) (KYCManager, error) {
@@ -27,11 +26,12 @@ func (m *manager) bindKYC(kycAddress string, abi []byte) (KYCManager, error) {
 	} else if abi == nil {
 		return nil, ErrNoABI
 	}
-	cli, _, ok := m.getClient()
+	rpc, _, ok := m.getClient()
 	if !ok {
 		return nil, ErrNodeUnavailable
 	}
-	boundContract, err := cli.BindContract(&sol.Contract{
+	cli := ethclient.NewClient(rpc)
+	boundContract, err := ethfw.BindContract(cli, &sol.Contract{
 		Address: common.HexToAddress(kycAddress),
 		ABI:     abi,
 	})
@@ -43,7 +43,6 @@ func (m *manager) bindKYC(kycAddress string, abi []byte) (KYCManager, error) {
 			contract: boundContract,
 			m:        m,
 		},
-		cli: cli,
 	}, nil
 }
 
@@ -73,28 +72,4 @@ func (k *kycManager) AccountStatus(account string) (KYCStatus, error) {
 		log.Warningf("received usupported KYC status: %d", status)
 		return StatusUnknown, nil
 	}
-}
-
-func (k *kycManager) ApproveAddr(account string) (*types.Transaction, error) {
-	opts, err := k.cli.TransactOpts(context.Background(), common.HexToAddress(k.m.ownAddr), k.m.pass)
-	if err != nil {
-		return nil, err
-	}
-	tx, err := k.contract.Transact(opts, "approveAddr", common.HexToAddress(account))
-	if err != nil {
-		return nil, err
-	}
-	return tx, nil
-}
-
-func (k *kycManager) SuspendAddr(account string) (*types.Transaction, error) {
-	opts, err := k.cli.TransactOpts(context.Background(), common.HexToAddress(k.m.ownAddr), k.m.pass)
-	if err != nil {
-		return nil, err
-	}
-	tx, err := k.contract.Transact(opts, "suspendAddr", common.HexToAddress(account))
-	if err != nil {
-		return nil, err
-	}
-	return tx, nil
 }

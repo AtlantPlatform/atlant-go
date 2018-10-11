@@ -13,13 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AtlantPlatform/ethfw"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/serialx/hashring"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/atlant-go/rs"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/AtlantPlatform/ethfw"
 )
 
 var (
@@ -58,8 +57,6 @@ const (
 
 type KYCManager interface {
 	AccountStatus(account string) (KYCStatus, error)
-	ApproveAddr(account string) (*types.Transaction, error)
-	SuspendAddr(account string) (*types.Transaction, error)
 }
 
 var DefaultTestNodes = []string{
@@ -70,13 +67,10 @@ var DefaultTestNodes = []string{
 
 var DefaultMainNodes = []string{}
 
-func NewManager(session string, store rs.PlanetaryRecordStore, ethAddr, pkPath, passphrase string, testnet bool) Manager {
+func NewManager(session string, store rs.PlanetaryRecordStore, testnet bool) Manager {
 	m := &manager{
 		store:   store,
 		session: session,
-		keyPath: pkPath,
-		pass:    passphrase,
-		ownAddr: ethAddr,
 		ringMux: new(sync.RWMutex),
 		fails:   make(map[string]int),
 	}
@@ -91,15 +85,12 @@ func NewManager(session string, store rs.PlanetaryRecordStore, ethAddr, pkPath, 
 type manager struct {
 	session string
 	store   rs.PlanetaryRecordStore
-	keyPath string
-	pass    string
-	ownAddr string
 	ring    *hashring.HashRing
 	ringMux *sync.RWMutex
 	fails   map[string]int
 }
 
-func (m *manager) getClient() (cli ethfw.Client, addr string, ok bool) {
+func (m *manager) getClient() (cli *rpc.Client, addr string, ok bool) {
 	for {
 		m.ringMux.RLock()
 		addr, ok = m.ring.GetNode(m.session)
@@ -108,13 +99,9 @@ func (m *manager) getClient() (cli ethfw.Client, addr string, ok bool) {
 			log.Warningln("no available geth nodes in pool, all dead x_X")
 			return nil, "", false
 		}
-		r, err := rpc.DialHTTP(addr)
+		newCli, err := rpc.DialHTTP(addr)
 		if err == nil {
-			cli = ethfw.NewClient(
-				r,
-				ethfw.KeyPathOpt(m.keyPath),
-				ethfw.OwnAddrOpt(m.ownAddr),
-			)
+			cli = newCli
 			break
 		}
 		log.Warningf("failed to connect to geth node: %v", err)

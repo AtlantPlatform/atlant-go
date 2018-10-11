@@ -157,7 +157,7 @@ func main() {
 			})
 
 			*ethAddress = strings.ToLower(*ethAddress)
-			mgr := contracts.NewManager(ctx.SessionID(), store, *ethAddress, *ethSignPath, *ethPass, *envTestnet)
+			mgr := contracts.NewManager(ctx.SessionID(), store, *envTestnet)
 			apiCtx := api.NewContext(ctx, store, mgr, *ethAddress, *logDir)
 			privateServer := api.NewPrivateServer()
 			privateServer.RouteAPI(apiCtx)
