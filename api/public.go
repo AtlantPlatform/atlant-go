@@ -55,8 +55,6 @@ func (p *PublicServer) RouteAPI(ctx APIContext) {
 
 	r.GET("/api/v1/tokenDistributionInfo", p.TokenDistributionInfo(ctx))
 	r.GET("/api/v1/kycStatus", p.KYCStatus(ctx))
-	r.POST("/api/v1/kycApprove", p.KYCApprove(ctx))
-	r.POST("/api/v1/kycSuspend", p.KYCSuspend(ctx))
 	r.GET("/api/v1/ethBalance", p.TokenBalance(ctx, contracts.TokenETH))
 	r.GET("/api/v1/atlBalance", p.TokenBalance(ctx, contracts.TokenATL))
 	r.GET("/api/v1/ptoBalance/:token", p.PropertyTokenBalance(ctx))
@@ -366,48 +364,6 @@ func (p *PublicServer) KYCStatus(ctx APIContext) gin.HandlerFunc {
 			return
 		}
 		c.String(200, "%s", status)
-	}
-}
-
-func (p *PublicServer) KYCApprove(ctx APIContext) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		accountAddr := c.PostForm("account")
-		if len(accountAddr) == 0 {
-			c.AbortWithStatus(400)
-			return
-		}
-		mgr, err := ctx.ContractsManager().KYCManager()
-		if err != nil {
-			c.String(500, "error: %v", err)
-			return
-		}
-		tx, err := mgr.ApproveAddr(accountAddr)
-		if err != nil {
-			c.String(500, "error: %v", err)
-			return
-		}
-		c.JSON(200, tx)
-	}
-}
-
-func (p *PublicServer) KYCSuspend(ctx APIContext) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		accountAddr := c.PostForm("account")
-		if len(accountAddr) == 0 {
-			c.AbortWithStatus(400)
-			return
-		}
-		mgr, err := ctx.ContractsManager().KYCManager()
-		if err != nil {
-			c.String(500, "error: %v", err)
-			return
-		}
-		tx, err := mgr.SuspendAddr(accountAddr)
-		if err != nil {
-			c.String(500, "error: %v", err)
-			return
-		}
-		c.JSON(200, tx)
 	}
 }
 

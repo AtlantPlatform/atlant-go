@@ -19,7 +19,7 @@ import (
 
 var app = cli.App("atlant-lite", getBanner()+"\nA lightweight ATLANT node client.")
 
-var nodeAddr = app.StringOpt("A addr", "localhost:33780", "Full node address")
+var nodeAddr = app.StringOpt("A addr", "testnet", "Full node address (ex. localhost:33780)")
 
 func init() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
@@ -167,7 +167,7 @@ func cmdListObjects(c *cli.Cmd) {
 	}
 }
 
-func getClient() client.Client {
+func getClient() client.NodeClient {
 	var urlPrefix string
 	switch *nodeAddr {
 	case "testnet", "testnet1":
@@ -181,7 +181,7 @@ func getClient() client.Client {
 	default:
 		urlPrefix = "http://" + *nodeAddr
 	}
-	return client.New(urlPrefix)
+	return client.NewNodeClient(urlPrefix)
 }
 
 func getBanner() string {

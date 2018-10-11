@@ -12,6 +12,7 @@ import (
 	"github.com/AtlantPlatform/ethfw/sol"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type ethManager struct {
@@ -27,10 +28,11 @@ func (m *manager) bindETH() TokenManager {
 }
 
 func (c *ethManager) AccountBalance(account string) (float64, error) {
-	cli, _, ok := c.m.getClient()
+	rpc, _, ok := c.m.getClient()
 	if !ok {
 		return 0, ErrNodeUnavailable
 	}
+	cli := ethclient.NewClient(rpc)
 	bigint, err := cli.BalanceAt(context.TODO(), common.HexToAddress(account), nil)
 	if err != nil {
 		// m.failNode(addr)
@@ -51,11 +53,12 @@ func (m *manager) bindATL(address string, abi []byte) (TokenManager, error) {
 	} else if abi == nil {
 		return nil, ErrNoABI
 	}
-	cli, _, ok := m.getClient()
+	rpc, _, ok := m.getClient()
 	if !ok {
 		return nil, ErrNodeUnavailable
 	}
-	boundContract, err := cli.BindContract(&sol.Contract{
+	cli := ethclient.NewClient(rpc)
+	boundContract, err := ethfw.BindContract(cli, &sol.Contract{
 		Address: common.HexToAddress(address),
 		ABI:     abi,
 	})
@@ -94,11 +97,12 @@ func (m *manager) bindPTO(address string, abi []byte) (TokenManager, error) {
 	} else if abi == nil {
 		return nil, ErrNoABI
 	}
-	cli, _, ok := m.getClient()
+	rpc, _, ok := m.getClient()
 	if !ok {
 		return nil, ErrNodeUnavailable
 	}
-	boundContract, err := cli.BindContract(&sol.Contract{
+	cli := ethclient.NewClient(rpc)
+	boundContract, err := ethfw.BindContract(cli, &sol.Contract{
 		Address: common.HexToAddress(address),
 		ABI:     abi,
 	})
