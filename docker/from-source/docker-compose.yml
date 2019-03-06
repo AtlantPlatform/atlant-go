@@ -1,0 +1,5 @@
+version: '3'
+services:
+  atlant_src:
+    build: ./
+    network_mode: "host"
