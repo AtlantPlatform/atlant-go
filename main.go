@@ -29,6 +29,7 @@ import (
 	"github.com/AtlantPlatform/atlant-go/rs"
 	"github.com/AtlantPlatform/atlant-go/state"
 	"github.com/AtlantPlatform/atlant-go/version"
+	"github.com/ipfs/go-ipfs/plugin/loader"
 )
 
 var app = cli.App("atlant-go", "ATLANT Node")
@@ -355,6 +356,14 @@ func nodeInitCmd(c *cli.Cmd) {
 				"File": keyPath,
 			}).Println("generated new private key for IPFS swarm")
 		}
+
+		// the following block is required to initialize badgerds via plugin loader
+		ldr, err := loader.NewPluginLoader("")
+		if err != nil {
+			log.Fatalln("NewPluginLoader failed:", err)
+		}
+		ldr.Inject()
+
 		log.WithFields(log.Fields{
 			"Dir":      *fsDir,
 			"SwarmKey": keyPath,
