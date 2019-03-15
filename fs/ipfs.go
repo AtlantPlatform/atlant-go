@@ -432,7 +432,6 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			if err := checkWriteable(prefix); err != nil {
 				return nil, err
 			}
-			fmt.Println("before config.Init")
 			conf, err := config.Init(ioutil.Discard, 2048)
 			if err != nil {
 				return nil, err
@@ -442,11 +441,9 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 				log.Warningf("failed to apply badgerds profile: %v", err)
 				return nil, err
 			}
-			fmt.Println("before fsrepo.Init")
 			if err := fsrepo.Init(prefix, conf); err != nil {
 				return nil, err
 			}
-			fmt.Println("before initializeIpnsKeyspace")
 			if err := initializeIpnsKeyspace(prefix); err != nil {
 				return nil, err
 			}

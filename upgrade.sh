@@ -3,7 +3,7 @@
 # exit if any command fails
 set -e
 
-echo "== Resetting vendor"
+echo "== Re-creating vendor folder"
 # remove vendor from gitignore. it will be included in commits
 sed -i '/vendor/d' ./.gitignore
 # remove all vendors
@@ -29,16 +29,19 @@ cp -rf ./vendor/github.com/ipfs/go-ipfs/vendor ./
 rm -rf ./vendor/github.com/ipfs/go-ipfs/vendor
 
 echo "== Outstanding vendors"
+rm -rf ./vendor/github.com/davidlazar/go-crypto
 git clone -q --depth=1 https://github.com/davidlazar/go-crypto \
     ./vendor/github.com/davidlazar/go-crypto
 
 echo "== Removing Extra(s)"
-rm -rf ./vendor/github.com/ethereum go.mod go.sum
+cd vendor && find . -type d -name ".git" -exec rm -rf {} + && cd -
+rm -rf ./vendor/github.com/ethereum ./vendor/modules.txt go.mod go.sum
 
-for f in ./patches;
+# Apply all patches from patches folder
+for f in ./patches/*.patch;
 do
   echo "== Applying patch $f"
-  # git apply $f
+  git apply $f
 done;
 
 
