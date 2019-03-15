@@ -13,9 +13,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xlab/catcher"
 
-	"github.com/AtlantPlatform/go-ipfs/core"
-	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
-	floodsub "github.com/AtlantPlatform/go-ipfs/go-libp2p-floodsub"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/core"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 var (
@@ -30,26 +30,23 @@ type PlanetaryPubSub interface {
 }
 
 type ipfsPubSub struct {
-	node  *core.IpfsNode
-	flood *floodsub.PubSub
-
-	subs    []*floodsub.Subscription
+	node    *core.IpfsNode
+	subs    []*pubsub.Subscription
 	subsMux *sync.RWMutex
 }
 
 func newIpfsPubSub(node *core.IpfsNode) *ipfsPubSub {
 	return &ipfsPubSub{
 		node:    node,
-		flood:   node.Floodsub,
 		subsMux: new(sync.RWMutex),
 	}
 }
 
 func (p *ipfsPubSub) Publish(topic string, data []byte) error {
-	if p.node == nil || p.flood == nil {
+	if p.node == nil || p.node.PubSub == nil {
 		return ErrNoPubSub
 	}
-	return p.flood.Publish(topic, data)
+	return p.node.PubSub.Publish(topic, data)
 }
 
 // TODO(max):
@@ -68,18 +65,18 @@ type Message struct {
 }
 
 func (p *ipfsPubSub) Subscribe(fn MessagePeekFunc, topics ...string) error {
-	if p.node == nil || p.flood == nil {
+	if p.node == nil || p.node.PubSub == nil {
 		return ErrNoPubSub
 	}
 	for _, topic := range topics {
-		sub, err := p.flood.Subscribe(topic)
+		sub, err := p.node.PubSub.Subscribe(topic)
 		if err != nil {
 			return err
 		}
 		p.subsMux.Lock()
 		p.subs = append(p.subs, sub)
 		p.subsMux.Unlock()
-		go func(sub *floodsub.Subscription) {
+		go func(sub *pubsub.Subscription) {
 			defer catcher.Catch(catcher.RecvLog(true))
 			for {
 				msg, err := sub.Next(context.Background())

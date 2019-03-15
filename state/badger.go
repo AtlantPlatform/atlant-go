@@ -60,7 +60,7 @@ func (s *badgerStore) View(k *Key, fn PeekFunc) error {
 			err = fmt.Errorf("item get error: %v", err)
 			return err
 		}
-		vv, err := v.Value()
+		vv, err := v.ValueCopy(nil)
 		if err != nil {
 			err = fmt.Errorf("value read error: %v", err)
 			return err
@@ -147,7 +147,7 @@ func (s *badgerStore) RangePeek(b Bucket, fn PeekFunc) (*RangeOptions, error) {
 			if k.Bucket.ID != b.ID {
 				return nil
 			}
-			v, err := it.Item().Value()
+			v, err := it.Item().ValueCopy(nil)
 			if err != nil {
 				return err
 			}
@@ -179,7 +179,7 @@ func (s *badgerStore) RangeModify(b Bucket, fn ModifyFunc) (*RangeOptions, error
 			if k.Bucket.ID != b.ID {
 				return nil
 			}
-			v, err := it.Item().Value()
+			v, err := it.Item().ValueCopy(nil)
 			if err != nil {
 				return err
 			}

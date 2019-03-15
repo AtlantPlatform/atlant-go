@@ -13,7 +13,7 @@ import (
 	capn "github.com/glycerine/go-capnproto"
 
 	"github.com/AtlantPlatform/atlant-go/proto"
-	"github.com/AtlantPlatform/go-ipfs/go-ipfs-cmdkit/files"
+	files "github.com/ipfs/go-ipfs-files"
 )
 
 var (
@@ -60,7 +60,7 @@ func readObjectFileMeta(body io.Reader) (proto.ObjectMeta, error) {
 // objectFile implements the files.File interface from IPFS.
 type objectFile struct {
 	name  string
-	pos   int
+	pos   int64
 	files []files.File
 }
 
@@ -69,7 +69,7 @@ func (f *objectFile) IsDirectory() bool {
 }
 
 func (f *objectFile) NextFile() (files.File, error) {
-	if f.pos >= len(f.files) {
+	if f.pos >= int64(len(f.files)) {
 		return nil, io.EOF
 	}
 	file := f.files[f.pos]
@@ -101,14 +101,20 @@ func (f *objectFile) Length() int {
 	return len(f.files)
 }
 
+func (f *objectFile) Seek(offset int64, whence int) (int64, error) {
+	f.pos = offset
+	return 0, nil
+}
+
 func (f *objectFile) Size() (int64, error) {
 	var size int64
 	for _, file := range f.files {
-		sizeFile, ok := file.(files.SizeFile)
-		if !ok {
-			return 0, errors.New("could not get size of child file")
-		}
-		s, err := sizeFile.Size()
+		// 2CHECK: is this correct?
+		// sizeFile, ok := file.(FilesSize()
+		// if !ok {
+		// 	return 0, errors.New("could not get size of child file")
+		// }
+		s, err := file.Size()
 		if err != nil {
 			return 0, err
 		}
@@ -157,6 +163,11 @@ func (f *metaFile) Size() (int64, error) {
 	return f.size, nil
 }
 
+func (f *metaFile) Seek(offset int64, whence int) (int64, error) {
+	// TODO: this is temp placeholder. there should be something meaningful
+	return 0, nil
+}
+
 // contentFile implements the files.File interface from IPFS.
 type contentFile struct {
 	name string
@@ -197,4 +208,9 @@ func (f *contentFile) Size() (int64, error) {
 		return 0, errors.New("unknown content size")
 	}
 	return f.size, nil
+}
+
+func (f *contentFile) Seek(offset int64, whence int) (int64, error) {
+	// TODO: this is temp placeholder. there should be something meaningful
+	return 0, nil
 }

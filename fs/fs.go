@@ -52,6 +52,7 @@ type PlanetaryFileStore interface {
 }
 
 func NewPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, error) {
+
 	s, err := newIpfsStore(prefix, false, opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to open IPFS store node: %v", err)

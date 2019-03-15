@@ -18,22 +18,23 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/AtlantPlatform/go-ipfs/core"
-	"github.com/AtlantPlatform/go-ipfs/core/corerepo"
-	"github.com/AtlantPlatform/go-ipfs/core/coreunix"
-	"github.com/AtlantPlatform/go-ipfs/exchange/bitswap"
-	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
-	ipld "github.com/AtlantPlatform/go-ipfs/go-ipld-format"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-interface-pnet"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-pnet"
-	"github.com/AtlantPlatform/go-ipfs/namesys"
-	ipath "github.com/AtlantPlatform/go-ipfs/path"
-	"github.com/AtlantPlatform/go-ipfs/path/resolver"
-	"github.com/AtlantPlatform/go-ipfs/repo"
-	"github.com/AtlantPlatform/go-ipfs/repo/config"
-	"github.com/AtlantPlatform/go-ipfs/repo/fsrepo"
-	uio "github.com/AtlantPlatform/go-ipfs/unixfs/io"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/corerepo"
+	"github.com/ipfs/go-ipfs/core/coreunix"
+
+	bitswap "github.com/ipfs/go-bitswap"
+	cid "github.com/ipfs/go-cid"
+	config "github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	ipld "github.com/ipfs/go-ipld-format"
+	ipath "github.com/ipfs/go-path"
+	"github.com/ipfs/go-path/resolver"
+	uio "github.com/ipfs/go-unixfs/io"
+	ipnet "github.com/libp2p/go-libp2p-interface-pnet"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pnet "github.com/libp2p/go-libp2p-pnet"
 
 	"github.com/AtlantPlatform/atlant-go/logging"
 	"github.com/AtlantPlatform/atlant-go/proto"
@@ -100,21 +101,10 @@ func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 		err = fmt.Errorf("failed to create object file: %v", err)
 		return nil, err
 	}
-	if err := fileAdder.AddFile(file); err != nil {
-		err = fmt.Errorf("failed to add object file to DAG: %v", err)
-		return nil, err
-	}
-	if _, err := fileAdder.Finalize(); err != nil {
-		err = fmt.Errorf("failed to finalize DAG node: %v", err)
-		return nil, err
-	}
-	if err := fileAdder.PinRoot(); err != nil {
-		err = fmt.Errorf("failed to pin object file, it will be soon collected by GC: %v", err)
-		return nil, err
-	}
-	node, err := fileAdder.RootNode()
+	// AddAllAndPin = (Finalize + PinRoot + RootNode) ? how could it be checked?
+	node, err := fileAdder.AddAllAndPin(file)
 	if err != nil {
-		err = fmt.Errorf("failed to get root node for the pinned object: %v", err)
+		err = fmt.Errorf("failed to add and pin object file to DAG: %v", err)
 		return nil, err
 	}
 	ref.Version = node.Cid().String()
@@ -411,6 +401,7 @@ func (s *ipfsStore) Client() PlanetaryClient {
 }
 
 func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, error) {
+	fmt.Println("newIpfsStore needInit=", needInit, "prefix=", prefix)
 	s := &ipfsStore{
 		prefix: prefix,
 		opts:   defaultIpfsOptions(),
@@ -428,6 +419,7 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			"mplex":  false,
 		},
 	}
+
 	if s.opts.StoreEnabled {
 		locked, err := fsrepo.LockedByOtherProcess(prefix)
 		if err != nil {
@@ -440,6 +432,7 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			if err := checkWriteable(prefix); err != nil {
 				return nil, err
 			}
+			fmt.Println("before config.Init")
 			conf, err := config.Init(ioutil.Discard, 2048)
 			if err != nil {
 				return nil, err
@@ -449,9 +442,11 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 				log.Warningf("failed to apply badgerds profile: %v", err)
 				return nil, err
 			}
+			fmt.Println("before fsrepo.Init")
 			if err := fsrepo.Init(prefix, conf); err != nil {
 				return nil, err
 			}
+			fmt.Println("before initializeIpnsKeyspace")
 			if err := initializeIpnsKeyspace(prefix); err != nil {
 				return nil, err
 			}
@@ -519,8 +514,8 @@ func (s *ipfsStore) applyConfig(cfg *config.Config) error {
 		fmt.Sprintf("/ip4/%s/tcp/%d", s.opts.ListenHost, s.opts.ListenPort),
 	}
 	// disable extra IPFS networking
-	cfg.Addresses.API = ""
-	cfg.Addresses.Gateway = ""
+	cfg.Addresses.API = []string{""}
+	cfg.Addresses.Gateway = []string{""}
 	cfg.API = config.API{}
 	cfg.Gateway = config.Gateway{}
 	return nil
@@ -600,10 +595,9 @@ func initializeIpnsKeyspace(prefix string) error {
 		return err
 	}
 	defer nd.Close()
-
-	if err := nd.SetupOfflineRouting(); err != nil {
-		return err
-	}
+	// if err := nd.SetupOfflineRouting(); err != nil {
+	//	return err
+	// }
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }
 
@@ -650,7 +644,7 @@ func (s *ipfsStore) BandwidthStats() *BandwidthStats {
 }
 
 func (s *ipfsStore) RepoStats() *RepoStats {
-	stats, err := corerepo.RepoStat(s.node, s.node.Context())
+	stats, err := corerepo.RepoStat(s.node.Context(), s.node)
 	if err != nil {
 		log.Warningf("failed to read core stats: %v", err)
 		return nil
@@ -689,7 +683,7 @@ func (s *ipfsStore) BitswapStats() *BitswapStats {
 
 func (s *ipfsStore) SignData(nodeID string, data []byte) ([]byte, error) {
 	pk := s.node.PrivateKey.GetPublic()
-	id, err := peer.IDFromEd25519PublicKey(pk)
+	id, err := peer.IDFromPublicKey(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +711,7 @@ func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	pk, err := id.ExtractEd25519PublicKey()
+	pk, err := id.ExtractPublicKey()
 	if err != nil {
 		return false, err
 	}
