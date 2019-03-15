@@ -13,7 +13,6 @@ bin/
 var/state
 var/fs
 var/log
-vendor/
 build/
 
 var/fs1/

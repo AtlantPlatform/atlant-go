@@ -7,7 +7,7 @@ package fs
 import (
 	"strconv"
 
-	"github.com/AtlantPlatform/go-ipfs/repo/config"
+	config "github.com/ipfs/go-ipfs-config"
 	log "github.com/sirupsen/logrus"
 )
 
