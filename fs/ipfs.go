@@ -446,6 +446,7 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			if err := initializeIpnsKeyspace(prefix); err != nil {
 				return nil, err
 			}
+			cfg.Online = false
 		}
 		r, err := s.openRepo(prefix)
 		if err != nil {
