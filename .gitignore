@@ -23,3 +23,5 @@ var/state2/
 var/state3/
 var/log
 var/*.txt
+
+atlant-go
