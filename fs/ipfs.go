@@ -401,7 +401,6 @@ func (s *ipfsStore) Client() PlanetaryClient {
 }
 
 func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, error) {
-	fmt.Println("newIpfsStore needInit=", needInit, "prefix=", prefix)
 	s := &ipfsStore{
 		prefix: prefix,
 		opts:   defaultIpfsOptions(),
@@ -680,7 +679,7 @@ func (s *ipfsStore) BitswapStats() *BitswapStats {
 
 func (s *ipfsStore) SignData(nodeID string, data []byte) ([]byte, error) {
 	pk := s.node.PrivateKey.GetPublic()
-	id, err := peer.IDFromPublicKey(pk)
+	id, err := peer.IDFromEd25519PublicKey(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -708,7 +707,7 @@ func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	pk, err := id.ExtractPublicKey()
+	pk, err := id.ExtractEd25519PublicKey()
 	if err != nil {
 		return false, err
 	}

@@ -156,8 +156,8 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
 		return ident, errors.New("bitsize less than 1024 is considered unsafe")
 	}
 
-	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
+	fmt.Fprintf(out, "generating an Ed25519 keypair...")
+	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, 0)
 	if err != nil {
 		return ident, err
 	}
@@ -171,7 +171,7 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
 	}
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
 
-	id, err := peer.IDFromPublicKey(pk)
+	id, err := peer.IDFromEd25519PublicKey(pk)
 	if err != nil {
 		return ident, err
 	}

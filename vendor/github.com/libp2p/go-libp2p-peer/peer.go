@@ -2,6 +2,7 @@
 package peer
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,6 +11,16 @@ import (
 	b58 "github.com/mr-tron/base58/base58"
 	mh "github.com/multiformats/go-multihash"
 )
+
+// Code is type from deprecated go-multicodec-packed
+type Code uint64
+
+const mcEd25519Pub = Code(0xed)
+
+func mcSplitPrefix(data []byte) (Code, []byte) {
+	c, n := binary.Uvarint(data)
+	return Code(c), data[n:]
+}
 
 var (
 	// ErrEmptyPeerID is an error for empty peer ID.
@@ -69,11 +80,65 @@ func (id ID) MatchesPrivateKey(sk ic.PrivKey) bool {
 
 // MatchesPublicKey tests whether this ID was derived from pk
 func (id ID) MatchesPublicKey(pk ic.PubKey) bool {
-	oid, err := IDFromPublicKey(pk)
+	oid, err := IDFromEd25519PublicKey(pk)
 	if err != nil {
 		return false
 	}
 	return oid == id
+}
+
+// ErrMultihashDecode - error of decoding multihash
+var ErrMultihashDecode = errors.New("unable to decode multihash")
+
+// ErrMultihashCodec - error of multihash coded
+var ErrMultihashCodec = errors.New("unexpected multihash codec")
+
+// ErrMultihashLength - error of multihash length
+var ErrMultihashLength = errors.New("unexpected multihash length")
+
+// ErrCodePrefix - error of Ed25519 prefix code
+var ErrCodePrefix = errors.New("unexpected code prefix")
+
+// ExtractEd25519PublicKey attempts to extract the public key from an ID
+func (id ID) ExtractEd25519PublicKey() (ic.PubKey, error) {
+	// ed25519 pubkey identity format
+	// <identity mc><length (2 + 32 = 34)><ed25519-pub mc><ed25519 pubkey>
+	// <0x00       ><0x22                ><0xed01        ><ed25519 pubkey>
+
+	var nilPubKey ic.PubKey
+
+	// Decode multihash
+	decoded, err := mh.Decode([]byte(id))
+	if err != nil {
+		return nilPubKey, ErrMultihashDecode
+	}
+
+	// Check ID multihash codec
+	if decoded.Code != mh.ID {
+		return nilPubKey, ErrMultihashCodec
+	}
+
+	// Check multihash length
+	if decoded.Length != 2+32 {
+		return nilPubKey, ErrMultihashLength
+	}
+
+	// Split prefix
+	code, pubKeyBytes := mcSplitPrefix(decoded.Digest)
+
+	// Check ed25519 code
+	if code != mcEd25519Pub {
+		return nilPubKey, ErrCodePrefix
+	}
+
+	// Unmarshall public key
+	pubKey, err := ic.UnmarshalEd25519PublicKey(pubKeyBytes)
+	if err != nil {
+		// Should never occur because of the check decoded.Length != 2+32
+		return nilPubKey, fmt.Errorf("Unexpected error unmarshalling Ed25519 public key")
+	}
+
+	return pubKey, nil
 }
 
 // ExtractPublicKey attempts to extract the public key from an ID
@@ -164,9 +229,27 @@ func IDFromPublicKey(pk ic.PubKey) (ID, error) {
 	return ID(hash), nil
 }
 
+// IDFromEd25519PublicKey returns the Peer ID corresponding to Id25519 pk
+func IDFromEd25519PublicKey(pk ic.PubKey) (ID, error) {
+	b, err := pk.Bytes()
+	if err != nil {
+		return "", err
+	}
+
+	// Build the ed25519 public key multi-codec
+	Ed25519PubMultiCodec := make([]byte, 2)
+	binary.PutUvarint(Ed25519PubMultiCodec, uint64(mcEd25519Pub))
+
+	hash, err := mh.Sum(append(Ed25519PubMultiCodec, b[len(b)-32:]...), mh.ID, 34)
+	if err != nil {
+		return "", err
+	}
+	return ID(hash), nil
+}
+
 // IDFromPrivateKey returns the Peer ID corresponding to sk
 func IDFromPrivateKey(sk ic.PrivKey) (ID, error) {
-	return IDFromPublicKey(sk.GetPublic())
+	return IDFromEd25519PublicKey(sk.GetPublic())
 }
 
 // IDSlice for sorting peers

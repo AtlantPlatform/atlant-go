@@ -142,6 +142,7 @@ func newClient(n *core.IpfsNode) *p2pClient {
 // }
 
 func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
+	fmt.Println("[p2pClient] Doing request")
 	return nil, nil
 }
 

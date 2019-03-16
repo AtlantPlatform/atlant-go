@@ -265,7 +265,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
 	if cfg.Swarm.EnableAutoRelay {
 		libp2pOpts = append(libp2pOpts, libp2p.EnableAutoRelay())
 	}
-
 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, libp2pOpts...)
 
 	if err != nil {
@@ -877,7 +876,7 @@ func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
 		return nil, err
 	}
 
-	id2, err := peer.IDFromPrivateKey(sk)
+	id2, err := peer.IDFromEd25519PublicKey(sk.GetPublic())
 	if err != nil {
 		return nil, err
 	}
