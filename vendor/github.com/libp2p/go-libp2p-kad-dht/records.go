@@ -122,7 +122,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
 	}
 
 	// Make sure the public key matches the peer ID
-	id, err := peer.IDFromPublicKey(pubk)
+	id, err := peer.IDFromEd25519PublicKey(pubk)
 	if err != nil {
 		logger.Errorf("Could not extract peer id from public key for %v", p)
 		return nil, err

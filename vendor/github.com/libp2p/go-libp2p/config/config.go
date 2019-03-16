@@ -89,7 +89,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
 	}
 
 	// Obtain Peer ID from public key
-	pid, err := peer.IDFromPublicKey(cfg.PeerKey.GetPublic())
+	pid, err := peer.IDFromEd25519PublicKey(cfg.PeerKey.GetPublic())
 	if err != nil {
 		return nil, err
 	}
