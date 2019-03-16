@@ -237,6 +237,14 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 	} else {
 		*fsBootstrapPeers = append(*fsBootstrapPeers, mainBootstrapPeers...)
 	}
+
+	// the following block is required to initialize badgerds via plugin loader
+	ldr, err := loader.NewPluginLoader("")
+	if err != nil {
+		log.Fatalln("NewPluginLoader failed:", err)
+	}
+	ldr.Inject()
+
 	fileStore, err := fs.NewPlanetaryFileStore(*fsDir,
 		fs.UseBootstrapPeersOpt(*fsBootstrapPeers),
 		fs.UseRelayOpt(toBool(*fsRelayEnabled)),
