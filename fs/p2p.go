@@ -5,6 +5,7 @@
 package fs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -97,53 +98,48 @@ func newClient(n *core.IpfsNode) *p2pClient {
 	}
 }
 
-// func (c *p2pClient) dial(ctx context.Context, nodeID string) (*p2p.Listener, error) {
-// 	id, err := peer.IDB58Decode(nodeID)
-// 	if err != nil {
-// 		err = fmt.Errorf("failed to parse remote ID: %v", err)
-// 		return nil, err
-// 	}
-// 	bindAddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
-// 	if err != nil {
-// 		err = fmt.Errorf("failed to assemble multiaddress: %v", err)
-// 		return nil, err
-// 	}
-
-// 	remote, err := c.node.P2P.Dial(ctx, nil, id, streamProtoName, bindAddr)
-// 	if err != nil {
-// 		err = fmt.Errorf("failed to dial remote P2P listener: %v", err)
-// 		return nil, err
-// 	}
-// 	return remote, nil
-// }
-
-// func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
-// 	var nodeID string
-// 	if _, err := peer.IDB58Decode(req.URL.Host); err != nil {
-// 		err = fmt.Errorf("failed to parse nodeID from URL: %v", err)
-// 		return nil, err
-// 	} else {
-// 		nodeID = req.URL.Host
-// 	}
-// 	c.doWG.Add(1)
-// 	defer c.doWG.Done()
-
-// 	remote, err := c.dial(req.Context(), nodeID)
-// 	if err != nil {
-// 		err = fmt.Errorf("dial error: %v", err)
-// 		return nil, err
-// 	}
-
-// 	host, _ := remote.ListenAddress().ValueForProtocol(ma.P_IP4)
-// 	port, _ := remote.ListenAddress().ValueForProtocol(ma.P_TCP)
-// 	req.URL.Scheme = "http"
-// 	req.URL.Host = fmt.Sprintf("%s:%s", host, port)
-// 	return c.cli.Do(req)
-// }
+func (c *p2pClient) dial(ctx context.Context, nodeID string) (p2p.Listener, error) {
+	id, err := peer.IDB58Decode(nodeID)
+	if err != nil {
+		err = fmt.Errorf("failed to parse remote ID: %v", err)
+		return nil, err
+	}
+	bindAddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+	if err != nil {
+		err = fmt.Errorf("failed to assemble multiaddress: %v", err)
+		return nil, err
+	}
+	remote, err := c.node.P2P.ForwardLocal(ctx, id, streamProtoName, bindAddr)
+	if err != nil {
+		err = fmt.Errorf("failed to dial remote P2P listener: %v", err)
+		return nil, err
+	}
+	return remote, nil
+}
 
 func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
-	fmt.Println("[p2pClient] Doing request")
-	return nil, nil
+	var nodeID string
+	if _, err := peer.IDB58Decode(req.URL.Host); err != nil {
+		err = fmt.Errorf("failed to parse nodeID from URL: %v", err)
+		return nil, err
+	} else {
+		nodeID = req.URL.Host
+	}
+	c.doWG.Add(1)
+	defer c.doWG.Done()
+
+	// fmt.Println("Request of ", req.URL)
+	remote, err := c.dial(req.Context(), nodeID)
+	if err != nil {
+		err = fmt.Errorf("dial error: %v", err)
+		return nil, err
+	}
+
+	host, _ := remote.ListenAddress().ValueForProtocol(ma.P_IP4)
+	port, _ := remote.ListenAddress().ValueForProtocol(ma.P_TCP)
+	req.URL.Scheme = "http"
+	req.URL.Host = fmt.Sprintf("%s:%s", host, port)
+	return c.cli.Do(req)
 }
 
 func (c *p2pClient) Close() {
