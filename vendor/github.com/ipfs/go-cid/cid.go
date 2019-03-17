@@ -146,8 +146,10 @@ func NewCidV0(mhash mh.Multihash) Cid {
 	if err != nil {
 		panic(err)
 	}
-	if dec.Code != mh.SHA2_256 || dec.Length != 32 {
-		panic("invalid hash for cidv0")
+	if dec.Code == 0 && dec.Length == 34 {
+		// skip valid ED25519 hash?
+	} else if dec.Code != mh.SHA2_256 || dec.Length != 32 {
+		panic("invalid hash for cidv0.")
 	}
 	return Cid{string(mhash)}
 }
