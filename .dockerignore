@@ -10,18 +10,13 @@
 .DS_Store
 var/chain
 bin/
-var/state
-var/fs
-var/log
-build/
-
-var/fs1/
-var/fs2/
-var/fs3/
-var/state1/
-var/state2/
-var/state3/
+var/state*
+var/fs*
 var/log
 var/*.txt
+build/
+patches/
 
 atlant-*
+*.yml
+Dockerfile
