@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	// Version is the current version of Tendermint
+	// Version is the current version of Atlant Node
 	// Must be a string because scripts like dist.sh read this file.
 	Version = "1.0.0-rc2"
 
