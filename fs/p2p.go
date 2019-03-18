@@ -16,6 +16,7 @@ import (
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/p2p"
 	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -54,9 +55,12 @@ func (l *p2pListener) Listen(addr string) error {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 
-	identity := peer.ID(mlAddr.String())
-	log.WithField("multiaddress", mlAddr.String()).Infoln("p2pListener started")
-	l.node.P2P = p2p.NewP2P(identity, l.node.PeerHost, l.node.Peerstore)
+	log.WithField("multiaddress", mlAddr.String()).Infoln("p2pListener started, p2p ForwardRemote")
+	_, errForward := l.node.P2P.ForwardRemote(l.node.Context(), protocol.ID(streamProtoName), mlAddr, true)
+	if errForward != nil {
+		errForward = fmt.Errorf("failed to init P2P listener: %v", err)
+		return errForward
+	}
 	return nil
 }
 
@@ -128,7 +132,8 @@ func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
 	c.doWG.Add(1)
 	defer c.doWG.Done()
 
-	// fmt.Println("Request of ", req.URL)
+	log.WithField("url=", req.URL).Infoln("Do.Request")
+
 	remote, err := c.dial(req.Context(), nodeID)
 	if err != nil {
 		err = fmt.Errorf("dial error: %v", err)
