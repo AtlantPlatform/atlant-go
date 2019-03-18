@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -306,7 +306,7 @@ func verify(cmd *cli.Cmd) {
 func versionCmd(c *cli.Cmd) {
 	c.Action = func() {
 		fmt.Fprintf(os.Stdout, "atlant-go version %s\n", version.Version)
-		fmt.Fprintln(os.Stderr, `atlant-go Copyright (C) 2018 ATLANT
+		fmt.Fprintln(os.Stderr, `atlant-go Copyright (C) 2019 ATLANT
     This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
     This is free software, and you are welcome to redistribute it
     under certain conditions; governored by GNU GPLv3 license.`)
