@@ -167,7 +167,7 @@ func cmdListObjects(c *cli.Cmd) {
 	}
 }
 
-func getClient() client.NodeClient {
+func getClient() client.Client {
 	var urlPrefix string
 	switch *nodeAddr {
 	case "testnet", "testnet1":
@@ -181,7 +181,7 @@ func getClient() client.NodeClient {
 	default:
 		urlPrefix = "http://" + *nodeAddr
 	}
-	return client.NewNodeClient(urlPrefix)
+	return client.New(urlPrefix)
 }
 
 func getBanner() string {
