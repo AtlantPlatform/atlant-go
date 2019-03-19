@@ -20,13 +20,22 @@ var Default Auth
 // 	Default = NewDNSAuth(DefaultMainDomains, 1*time.Minute)
 // }
 
-// InitWithDomains - initialize
+// InitWithDomains - initialize with DNS checks of certain domains
 func InitWithDomains(domains []string) {
 	log.WithField("domains", domains).Debugln("auth.InitWithDomains")
 	if Default != nil {
 		Default.StopUpdates()
 	}
 	Default = NewDNSAuth(domains, 1*time.Minute)
+}
+
+// InitWithURLs - initialize with URL checks
+func InitWithURLs(urls []string) {
+	log.WithField("urls", urls).Debugln("auth.InitWithURLs")
+	if Default != nil {
+		Default.StopUpdates()
+	}
+	Default = NewURLAuth(urls, 1*time.Minute)
 }
 
 // Auth is an interface for checking permissions

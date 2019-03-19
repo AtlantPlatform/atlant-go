@@ -14,22 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-	DNS authorization means that for checking presence
-	of node write/sync permissions
-
-	We are requesting TXT records for a specific domain
-	A tricky moment is that your DNS resolver might not support
-
-	```
-	$ dig node-test.atlant-dev.io TXT | grep TXT | grep -v \;
-	node-test.atlant-dev.io. 96	IN	TXT	"14V8BdHqHhExw4645xB3Xa2iheBrjYCMr7StXWUA9hBTqp8cM:sync"
-	node-test.atlant-dev.io. 96	IN	TXT	"14V8Bds64aUZJx6ag2TUXozS78Sko6fJ8kbkHF4bgvv9zgR6j:sync"
-	node-test.atlant-dev.io. 96	IN	TXT	"14V8BVs2FyU5qREKd68SgPqccrChiWX2uKdeeMtUhGfqJZjyK:sync"
-	node-test.atlant-dev.io. 96	IN	TXT	"14V8BTKR9MjKhfqgT4ybBjSb7kZHXmwvgBba7ujhN6ecTXJji:sync"
-	````
-*/
-
 // DefaultMainDomains is a list of domains for production network
 var DefaultMainDomains = []string{
 	"node-main.atlant-dev.io",
@@ -77,9 +61,10 @@ func (d *dnsAuth) refresh() {
 			labels, err := net.LookupTXT(domain)
 			if err != nil {
 				if strings.Contains(err.Error(), "no such host") {
+					log.WithField("domain", domain).Infoln("No such host")
 					return
 				}
-				log.WithField("domain", domain).Infoln("failed to fetch TXT records:", err)
+				log.WithField("domain", domain).Infoln("Failed to fetch TXT records:", err)
 				return
 			}
 			seen[domain] = struct{}{}
@@ -89,7 +74,7 @@ func (d *dnsAuth) refresh() {
 					log.WithFields(log.Fields{
 						"domain": domain,
 						"label":  label,
-					}).Infoln("malformed label on auth domain:", label)
+					}).Infoln("Malformed label on auth domain")
 					continue
 				}
 				if key == "promote" {
@@ -206,7 +191,7 @@ func (d *dnsAuth) HasPermissions(key string, perms ...Permission) bool {
 	log.WithFields(log.Fields{
 		"key":   key,
 		"perms": perms,
-	}).Debugln("check is has permissions via DNS")
+	}).Debugln("dnsAuth: check permissions")
 	for _, list := range d.entries {
 		for _, e := range list {
 			if e.Key != key {

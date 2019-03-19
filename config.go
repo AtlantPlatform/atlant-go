@@ -126,6 +126,13 @@ var (
 		Value:     nil,
 		HideValue: true,
 	})
+	envTestnetUrls = app.Strings(cli.StringsOpt{
+		Name:      "testnet-auth-urls",
+		Desc:      "Specify additional authority HTTP endpoints for a testnet environment.",
+		EnvVar:    "AN_TESTNET_URLS",
+		Value:     nil,
+		HideValue: true,
+	})
 )
 
 var (

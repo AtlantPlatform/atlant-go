@@ -109,8 +109,12 @@ func main() {
 			if *envTestnetKey != testKey {
 				log.Warningln("overriding testnet key works only upon initialization, no effect now.")
 			}
-			domains := append(*envTestnetDomains, authcenter.DefaultTestDomains...)
-			authcenter.InitWithDomains(domains)
+			if len(*envTestnetUrls) > 0 {
+				authcenter.InitWithURLs(*envTestnetUrls)
+			} else {
+				domains := append(*envTestnetDomains, authcenter.DefaultTestDomains...)
+				authcenter.InitWithDomains(domains)
+			}
 			log.Println("ATLANT TestNet welcomes you!")
 		} else {
 			if len(*envTestnetDomains) > 0 {
