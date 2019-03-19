@@ -54,6 +54,7 @@ func (d *dnsAuth) refresh() {
 			if _, ok := seen[domain]; ok {
 				return
 			}
+			log.WithField("domain", domain).Debugln("DnsAuth: Looking into TXT records")
 			labels, err := net.LookupTXT(domain)
 			if err != nil {
 				if strings.Contains(err.Error(), "no such host") {
@@ -66,7 +67,10 @@ func (d *dnsAuth) refresh() {
 			for _, label := range labels {
 				key, tags, ok := parseLabel(label)
 				if !ok {
-					log.WithField("domain", domain).Infoln("malformed label on auth domain:", label)
+					log.WithFields(log.Fields{
+						"domain": domain,
+						"label":  label,
+					}).Infoln("malformed label on auth domain:", label)
 					continue
 				}
 				if key == "promote" {
@@ -88,7 +92,10 @@ func (d *dnsAuth) refresh() {
 					case RecordWritePermission, RecordSyncPermission:
 						entry.Permissions = append(entry.Permissions, p)
 					default:
-						log.WithField("domain", domain).Infoln("unknown permission tag:", tag)
+						log.WithFields(log.Fields{
+							"domain": domain,
+							"tag":    tag,
+						}).Infoln("Unknown permission tag (can be fixed by using 8.8.8.8 in /etc/resolv.conf)")
 					}
 				}
 				sort.Sort(Permissions(entry.Permissions))
@@ -177,6 +184,10 @@ func (d *dnsAuth) AllPermissions(key string) []Permission {
 
 func (d *dnsAuth) HasPermissions(key string, perms ...Permission) bool {
 	d.mux.RLock()
+	log.WithFields(log.Fields{
+		"key":   key,
+		"perms": perms,
+	}).Debugln("check is has permissions via DNS")
 	for _, list := range d.entries {
 		for _, e := range list {
 			if e.Key != key {

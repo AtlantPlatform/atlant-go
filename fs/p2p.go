@@ -55,7 +55,11 @@ func (l *p2pListener) Listen(addr string) error {
 	l.mux.Lock()
 	defer l.mux.Unlock()
 
-	log.WithField("multiaddress", mlAddr.String()).Infoln("p2pListener started, p2p ForwardRemote")
+	log.WithFields(log.Fields{
+		"multiaddress": mlAddr.String(),
+		"protocol":     streamProtoName,
+	}).Debugln("p2pListener started, p2p ForwardRemote")
+
 	_, errForward := l.node.P2P.ForwardRemote(l.node.Context(), protocol.ID(streamProtoName), mlAddr, true)
 	if errForward != nil {
 		errForward = fmt.Errorf("failed to init P2P listener: %v", err)
@@ -132,7 +136,10 @@ func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
 	c.doWG.Add(1)
 	defer c.doWG.Done()
 
-	log.WithField("url=", req.URL).Infoln("Do.Request")
+	log.WithFields(log.Fields{
+		"url":        req.URL,
+		"remoteAddr": req.RemoteAddr,
+	}).Debugln("Do.Request")
 
 	remote, err := c.dial(req.Context(), nodeID)
 	if err != nil {

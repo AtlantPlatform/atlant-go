@@ -7,15 +7,19 @@ package authcenter
 import (
 	"sort"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var Default Auth
 
 func init() {
+	log.WithField("domains", DefaultMainDomains).Debugln("auth.init")
 	Default = NewDNSAuth(DefaultMainDomains, 1*time.Minute)
 }
 
 func InitWithDomains(domains []string) {
+	log.WithField("domains", domains).Debugln("auth.InitWithDomains")
 	if Default != nil {
 		Default.StopUpdates()
 	}
