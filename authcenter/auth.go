@@ -11,13 +11,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Default is that interface that
 var Default Auth
 
-func init() {
-	log.WithField("domains", DefaultMainDomains).Debugln("auth.init")
-	Default = NewDNSAuth(DefaultMainDomains, 1*time.Minute)
-}
+// commented as it is not used
+// func init() {
+// 	log.WithField("domains", DefaultMainDomains).Debugln("auth.init")
+// 	Default = NewDNSAuth(DefaultMainDomains, 1*time.Minute)
+// }
 
+// InitWithDomains - initialize
 func InitWithDomains(domains []string) {
 	log.WithField("domains", domains).Debugln("auth.InitWithDomains")
 	if Default != nil {
@@ -26,6 +29,7 @@ func InitWithDomains(domains []string) {
 	Default = NewDNSAuth(domains, 1*time.Minute)
 }
 
+// Auth is an interface for checking permissions
 type Auth interface {
 	Entries() map[string]Entry
 	HasPermissions(key string, perms ...Permission) bool
@@ -33,22 +37,28 @@ type Auth interface {
 	StopUpdates()
 }
 
+// Permission is a text word
 type Permission string
 
 const (
+	// RecordWritePermission is a permission to write
 	RecordWritePermission Permission = "write"
-	RecordSyncPermission  Permission = "sync"
+	// RecordSyncPermission is a permission to sync
+	RecordSyncPermission Permission = "sync"
 )
 
+// Entry is a node permissions record
 type Entry struct {
 	Key         string
 	Permissions []Permission
 }
 
+// AllPermissions returns list of permissions for the node
 func (e *Entry) AllPermissions() []Permission {
 	return e.Permissions
 }
 
+// HasPermissions checks node permission presence
 func (e *Entry) HasPermissions(perms ...Permission) bool {
 	if e == nil {
 		return false
@@ -64,11 +74,14 @@ func (e *Entry) HasPermissions(perms ...Permission) bool {
 	return true
 }
 
+// Permissions is the collection of Permission
 type Permissions []Permission
 
 func (s Permissions) Len() int           { return len(s) }
 func (s Permissions) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s Permissions) Less(i, j int) bool { return s[i] < s[j] }
+
+// Search allows to search the collection of permission for specific one
 func (s Permissions) Search(x Permission) int {
 	return sort.Search(len(s), func(i int) bool { return s[i] >= x })
 }

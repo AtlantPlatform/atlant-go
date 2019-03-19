@@ -14,16 +14,35 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+	DNS authorization means that for checking presence
+	of node write/sync permissions
+
+	We are requesting TXT records for a specific domain
+	A tricky moment is that your DNS resolver might not support
+
+	```
+	$ dig node-test.atlant-dev.io TXT | grep TXT | grep -v \;
+	node-test.atlant-dev.io. 96	IN	TXT	"14V8BdHqHhExw4645xB3Xa2iheBrjYCMr7StXWUA9hBTqp8cM:sync"
+	node-test.atlant-dev.io. 96	IN	TXT	"14V8Bds64aUZJx6ag2TUXozS78Sko6fJ8kbkHF4bgvv9zgR6j:sync"
+	node-test.atlant-dev.io. 96	IN	TXT	"14V8BVs2FyU5qREKd68SgPqccrChiWX2uKdeeMtUhGfqJZjyK:sync"
+	node-test.atlant-dev.io. 96	IN	TXT	"14V8BTKR9MjKhfqgT4ybBjSb7kZHXmwvgBba7ujhN6ecTXJji:sync"
+	````
+*/
+
+// DefaultMainDomains is a list of domains for production network
 var DefaultMainDomains = []string{
 	"node-main.atlant-dev.io",
 	"node-main.atlant.io",
 }
 
+// DefaultTestDomains is a list of domains for test network
 var DefaultTestDomains = []string{
 	"node-test.atlant-dev.io",
 	"node-test.atlant.io",
 }
 
+// NewDNSAuth initializes authcenter with domains, which DNS will be requested
 func NewDNSAuth(domains []string, dur time.Duration) Auth {
 	d := &dnsAuth{
 		mux:     new(sync.RWMutex),
@@ -129,7 +148,7 @@ func (d *dnsAuth) refresh() {
 			return
 		case <-t.C:
 			if err := sync(); err != nil {
-				log.Warningln("DNS auth sync failed: %v", err)
+				log.Warningf("DNS auth sync failed: %v", err)
 				t.Reset(time.Minute)
 				continue
 			}
