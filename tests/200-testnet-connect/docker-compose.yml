@@ -1,0 +1,10 @@
+version: '3'
+services:
+  atlant_src:
+    build: ./
+    dns:
+      - 8.8.8.8
+      - 4.4.4.4
+    ports:
+      - "33770:33770"
+      - "33780:33780"

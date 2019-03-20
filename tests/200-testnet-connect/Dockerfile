@@ -1,0 +1,12 @@
+FROM atlantplatform:latest
+WORKDIR /AtlantPlatform/
+ENV AN_LOG_LEVEL=5
+
+RUN ./atlant-go -T init
+EXPOSE 33770 33780
+
+VOLUME /AtlantPlatform/var/fs
+VOLUME /AtlantPlatform/var/log
+VOLUME /AtlantPlatform/var/state
+
+CMD ["./atlant-go"]

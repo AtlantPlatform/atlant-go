@@ -15,6 +15,7 @@ var/fs*
 var/log
 var/*.txt
 build/
+tests/
 patches/
 
 atlant-*
