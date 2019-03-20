@@ -26,6 +26,8 @@ RUN go build
 RUN cd cmd/atlant-lite && go build -o ./../../atlant-lite main.go && cd -
 # Build Atlant Keygen
 RUN cd cmd/atlant-keygen && go build -o ./../../atlant-keygen main.go && cd -
+# Build Atlant Auth Server
+RUN cd cmd/atlant-auth && go build -o ./../../atlant-auth && cd -
 
 # Container that contains only binaries
 FROM debian:stretch

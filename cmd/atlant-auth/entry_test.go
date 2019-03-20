@@ -1,0 +1,30 @@
+package main
+
+import "testing"
+
+const validNodeID = "14V8BbA8ip" // yes, this is not real node.
+
+func TestEntryToString(t *testing.T) {
+	entry := Entry{
+		validNodeID,
+		[]Permission{RecordWritePermission, RecordSyncPermission},
+	}
+	got := entry.String()
+	expected := validNodeID + ":write,sync"
+
+	if got != expected {
+		t.Errorf("Entry.String got '%v', expected '%v'", got, expected)
+	}
+}
+
+func TestEntryFromString(t *testing.T) {
+	expected := validNodeID + ":write,sync"
+	entry, err := NewEntryFromString(expected)
+	if err != nil {
+		t.Error(err)
+	}
+	got := entry.String() // getting string again
+	if got != expected {
+		t.Errorf("NewEntryFromString: got '%v' expected '%v'", got, expected)
+	}
+}

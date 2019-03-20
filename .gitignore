@@ -24,4 +24,7 @@ var/state3/
 var/log
 var/*.txt
 
-atlant-*
+/atlant-go
+/atlant-keygen
+/atlant-lite
+/atlant-auth
