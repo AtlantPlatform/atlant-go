@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -350,6 +351,10 @@ func validateRecord(record *proto.Record) error {
 	if err != nil {
 		return fmt.Errorf("error checking current version signature: %v", err)
 	} else if !ok {
+		fmt.Println("1. Node ID=", ann.NodeID())
+		fmt.Println("2. Signature=", ann.Signature())
+		fmt.Println("3. Envelope=", hex.EncodeToString(ann.Envelope()))
+		os.Exit(1)
 		return errors.New("incorrect signature for current version announce")
 	}
 	list := record.Previous()

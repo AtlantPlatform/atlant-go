@@ -22,6 +22,9 @@ ENV GO111MODULE=off
 COPY . .
 RUN go build
 
+# Lets run unit tests on it
+RUN go test ./... -v
+
 # Build Atlant Lite
 RUN cd cmd/atlant-lite && go build -o ./../../atlant-lite main.go && cd -
 # Build Atlant Keygen

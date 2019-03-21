@@ -137,13 +137,13 @@ func (o *ObjectRef) ToProto() (proto.ObjectMeta, error) {
 }
 
 // PrevVersion decreases version offset
-func (o ObjectRef) PrevVersion() ObjectRef {
+func (o *ObjectRef) PrevVersion() *ObjectRef {
 	o.VersionOffset--
 	return o
 }
 
 // NextVersion increases version offset
-func (o ObjectRef) NextVersion() ObjectRef {
+func (o *ObjectRef) NextVersion() *ObjectRef {
 	o.VersionOffset++
 	return o
 }

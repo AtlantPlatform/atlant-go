@@ -10,19 +10,19 @@ services:
     env_file:
       - ".env"
   node1:
-    build: .
+    build: ./node1/
     ports:
       - "33001:33780"
     env_file:
       - ./.env
   node2:
-    build: .
+    build: ./node2/
     ports:
       - "33002:33780"
     env_file:
       - ./.env
   node3:
-    build: .
+    build: ./node3/
     ports:
       - "33003:33780"
     env_file:

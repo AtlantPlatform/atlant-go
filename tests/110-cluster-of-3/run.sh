@@ -11,13 +11,26 @@ fi
 sudo docker network create --driver bridge clusterof3 || true
 
 # starting the server
-sudo docker-compose up -d --build
-retVal=$?
-if [ $retVal -ne 0 ]; then
-    echo
-    echo "[`date`] Build from Source Code Failed"
-    exit $retVal
-fi
+echo "[`date`] Starting Auth Server"
+sudo docker-compose up -d --build auth
+echo "[`date`] Starting Node 1"
+sudo docker-compose up -d --build node1
+sleep 4
+NODE1=`curl -q http://localhost:33001/api/v1/ping || ''`
+echo "[`date`] NODE1=$NODE1"
+# TODO: give node permissions to write
+
+echo "[`date`] Starting Node 2"
+sudo docker-compose up -d --build node2
+sleep 5
+NODE1=`curl -q http://localhost:33002/api/v1/ping || ''`
+echo "[`date`] NODE2=$NODE2"
+
+echo "[`date`] Starting Node 3"
+sudo docker-compose up -d --build node3
+sleep 5
+NODE1=`curl -q http://localhost:33003/api/v1/ping || ''`
+echo "[`date`] NODE3=$NODE3"
 
 echo "[`date`] Waiting for 10 seconds"
 sleep 10
