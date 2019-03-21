@@ -174,7 +174,7 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 			event.Announce = proto.ReadRootAnnounce(seg)
 			r.ReceiveEventAnnounce(event)
 		default:
-			log.Warningln("event not handled: %s", event.Type.String())
+			log.Warningf("event not handled: %s", event.Type.String())
 			return nil
 		}
 		return nil
@@ -620,7 +620,7 @@ func (r *recordStore) handleEvent(ev *EventAnnounce, timeout time.Duration) erro
 			log.WithFields(updateFields).Warningln("file not found on IPFS but announced")
 			return nil
 		} else if err != nil {
-			log.WithFields(updateFields).Errorln("failed to retrieve object: %v", err)
+			log.WithFields(updateFields).Errorf("failed to retrieve object: %v", err)
 			return nil
 		}
 		k := state.NewKey(state.BucketRecords, []byte(ref.ID))
@@ -647,7 +647,7 @@ func (r *recordStore) handleEvent(ev *EventAnnounce, timeout time.Duration) erro
 			log.Warningf("failed to update record: %v", err)
 		}
 		if err := r.fs.PinNewest(*ref, 3); err != nil {
-			log.WithFields(updateFields).Errorln("failed to pin object: %v", err)
+			log.WithFields(updateFields).Errorf("failed to pin object: %v", err)
 			return nil
 		}
 	case EventBeatTick:
