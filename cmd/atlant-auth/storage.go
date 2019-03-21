@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // Storage interface

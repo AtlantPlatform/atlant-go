@@ -400,7 +400,7 @@ func (s *ipfsStore) Client() PlanetaryClient {
 	return s.client
 }
 
-func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, error) {
+func newIpfsStore(prefix string, needInit bool, opts ...IpfsOpt) (*ipfsStore, error) {
 	s := &ipfsStore{
 		prefix: prefix,
 		opts:   defaultIpfsOptions(),
@@ -715,6 +715,6 @@ func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	}
 	_ = pk
 	// TODO: research weird case in sync routine
-	// return pk.Verify(data, []byte(sig))
-	return true, nil
+	return pk.Verify(data, []byte(sig))
+	// return true, nil
 }

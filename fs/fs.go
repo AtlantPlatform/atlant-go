@@ -54,7 +54,7 @@ type PlanetaryFileStore interface {
 }
 
 // NewPlanetaryFileStore creates new IPFS filestore
-func NewPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, error) {
+func NewPlanetaryFileStore(prefix string, opts ...IpfsOpt) (PlanetaryFileStore, error) {
 	s, err := newIpfsStore(prefix, false, opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to open IPFS store node: %v", err)
@@ -64,7 +64,7 @@ func NewPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, 
 }
 
 // InitPlanetaryFileStore initializes new IPFS filestore
-func InitPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, error) {
+func InitPlanetaryFileStore(prefix string, opts ...IpfsOpt) (PlanetaryFileStore, error) {
 	s, err := newIpfsStore(prefix, true, opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to init IPFS store node: %v", err)

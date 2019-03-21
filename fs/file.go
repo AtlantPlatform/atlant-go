@@ -11,7 +11,7 @@ import (
 	"io"
 
 	capn "github.com/glycerine/go-capnproto"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/atlant-go/proto"
 	files "github.com/ipfs/go-ipfs-files"

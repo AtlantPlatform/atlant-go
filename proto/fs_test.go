@@ -17,7 +17,7 @@ func TestObjectMetaCapn(t *testing.T) {
 
 	seg := capn.NewBuffer(nil)
 	meta := AutoNewObjectMeta(seg)
-	meta.SetPath("/test/hello")
+	meta.SetPath("/test/hello.txt")
 	buf := new(bytes.Buffer)
 	meta.Segment.WriteToPacked(buf)
 
