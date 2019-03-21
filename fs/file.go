@@ -11,16 +11,20 @@ import (
 	"io"
 
 	capn "github.com/glycerine/go-capnproto"
+	"github.com/prometheus/common/log"
 
 	"github.com/AtlantPlatform/atlant-go/proto"
 	files "github.com/ipfs/go-ipfs-files"
 )
 
 var (
+	// ErrNotDirectory - cannot call directory functions on files
 	ErrNotDirectory = errors.New("could not get next file, not a directory")
-	ErrNotReader    = errors.New("this is a directory, cannot call read functions")
+	// ErrNotReader - cannot call read functions on directory
+	ErrNotReader = errors.New("this is a directory, cannot call read functions")
 )
 
+// NewObjectFile creates new IPFS File
 func NewObjectFile(meta proto.ObjectMeta, body io.ReadCloser) (files.File, error) {
 	metaBuf := new(bytes.Buffer)
 	if _, err := meta.Segment.WriteToPacked(metaBuf); err != nil {
@@ -165,6 +169,7 @@ func (f *metaFile) Size() (int64, error) {
 
 func (f *metaFile) Seek(offset int64, whence int) (int64, error) {
 	// TODO: this is temp placeholder. there should be something meaningful
+	log.Errorf("metaFile.Seek is called offset=%d, whence=%d. Not implemented yet", offset, whence)
 	return 0, nil
 }
 
@@ -212,5 +217,6 @@ func (f *contentFile) Size() (int64, error) {
 
 func (f *contentFile) Seek(offset int64, whence int) (int64, error) {
 	// TODO: this is temp placeholder. there should be something meaningful
+	log.Errorf("contentFile.Seek is called offset=%d, whence=%d. Not implemented yet", offset, whence)
 	return 0, nil
 }

@@ -19,10 +19,13 @@ import (
 )
 
 var (
+	// ErrNoPubSub is thrown if pubsub is not initialized
 	ErrNoPubSub = errors.New("IPFS pubsub is not initialized")
-	ErrSubStop  = errors.New("stop subscription")
+	// ErrSubStop is thrown if subscription is stopped
+	ErrSubStop = errors.New("stop subscription")
 )
 
+// PlanetaryPubSub interface for publish/subscribe
 type PlanetaryPubSub interface {
 	Publish(topic string, data []byte) error
 	Subscribe(fn MessagePeekFunc, topics ...string) error
@@ -55,8 +58,10 @@ func (p *ipfsPubSub) Publish(topic string, data []byte) error {
 // WithValidatorTimeout
 // etc
 
+// MessagePeekFunc function for peeking messages
 type MessagePeekFunc func(m *Message) error
 
+// Message structure
 type Message struct {
 	From     string   `json:"from,omitempty"`
 	Data     []byte   `json:"data,omitempty"`

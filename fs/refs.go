@@ -99,7 +99,7 @@ func (rw *RefWriter) skip(c *cid.Cid) bool {
 	return has
 }
 
-// Write one edge
+// WriteEdge - Write one edge
 func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
 	if rw.Ctx != nil {
 		select {

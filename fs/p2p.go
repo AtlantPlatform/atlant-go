@@ -23,11 +23,15 @@ import (
 const streamProtoName = "/p2p/atlant"
 
 var (
-	ErrStreamDisabled     = errors.New("libp2pStreamMounting is disabled")
+	// ErrStreamDisabled is thrown if libp2pStreamMounting is disabled
+	ErrStreamDisabled = errors.New("libp2pStreamMounting is disabled")
+	// ErrListenerRegistered is thrown if listener is already registered
 	ErrListenerRegistered = errors.New("listener is already registered")
-	ErrListenerClosed     = errors.New("listener is closed")
+	// ErrListenerClosed is thrown if listener is closed
+	ErrListenerClosed = errors.New("listener is closed")
 )
 
+// PlanetaryListener is interface for P2P listening
 type PlanetaryListener interface {
 	Listen(addr string) error
 	IsRunning() bool
@@ -82,6 +86,7 @@ func (l *p2pListener) IsRunning() bool {
 	return len(l.node.P2P.ListenersP2P.Listeners) > 0
 }
 
+// PlanetaryClient http client for PlanetaryListener
 type PlanetaryClient interface {
 	// Do performs a HTTP request over the pipe to PlanetaryListener, e.g.
 	// GET http://14V8BYb2dEc3wEwLZroaaTDhoW9TjAMXBnH8BBHj8e5ZEF4hB/private/v1/ping
@@ -130,9 +135,9 @@ func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
 	if _, err := peer.IDB58Decode(req.URL.Host); err != nil {
 		err = fmt.Errorf("failed to parse nodeID from URL: %v", err)
 		return nil, err
-	} else {
-		nodeID = req.URL.Host
 	}
+	nodeID = req.URL.Host
+
 	c.doWG.Add(1)
 	defer c.doWG.Done()
 

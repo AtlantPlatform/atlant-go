@@ -65,6 +65,7 @@ func (s *ipfsStore) NodeID() string {
 	return s.node.Identity.Pretty()
 }
 
+// ErrNotFound is thrown if boject is not found in IPFS
 var ErrNotFound = errors.New("not found")
 
 func (s *ipfsStore) PutObject(ctx context.Context, ref ObjectRef,
@@ -217,11 +218,10 @@ func (s *ipfsStore) ListObjects(ctx context.Context, ref ObjectRef) ([]ObjectRef
 				return list, nil
 			}
 			return nil, ErrNotFound
-		} else {
-			return nil, errors.New("ListObjects: version offsets are not supported yet")
 		}
+		return nil, errors.New("ListObjects: version offsets are not supported yet (VersionOffset == 0)")
 	} else if len(ref.Version) > 0 && ref.VersionOffset != 0 {
-		return nil, errors.New("ListObjects: version offsets are not supported yet")
+		return nil, errors.New("ListObjects: version offsets are not supported yet (VersionOffset != 0)")
 	}
 	cidC, err := s.node.Blockstore.AllKeysChan(ctx)
 	if err != nil {
@@ -298,7 +298,7 @@ func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 			prevVer = objRef.VersionPrevious
 			id, err := cid.Parse(objRef.Version)
 			if err != nil {
-				return errors.New(fmt.Sprintf("failed to parse ID to CID: %v", err))
+				return fmt.Errorf("failed to parse ID to CID: %v", err)
 			}
 			if _, ok, _ := s.node.Pinning.IsPinned(id); !ok {
 				continue
@@ -307,7 +307,7 @@ func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 				return err
 			}
 			if _, ok, _ := s.node.Pinning.IsPinned(id); ok {
-				return errors.New(fmt.Sprintf("failed object unpinning: cid %s", id.String()))
+				return fmt.Errorf("failed object unpinning: cid %s", id.String())
 			}
 			log.Debugf("successful unpinning cid: %s\n", id.String())
 		}
@@ -703,6 +703,7 @@ func (s *ipfsStore) VerifyNode(code string) (string, error) {
 	return base64.StdEncoding.EncodeToString([]byte(jsoned)), nil
 }
 
+// VerifyDataSignature - checks the signature for the node
 func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	id, err := peer.IDB58Decode(nodeID)
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PlanetaryCache interface for cache
 type PlanetaryCache interface{}
 
 type ipfsOptions struct {
@@ -24,7 +25,8 @@ type ipfsOptions struct {
 	Cache          PlanetaryCache
 }
 
-type ipfsOpt func(o *ipfsOptions)
+// IpfsOpt handler for options
+type IpfsOpt func(o *ipfsOptions)
 
 func defaultIpfsOptions() *ipfsOptions {
 	return &ipfsOptions{
@@ -38,31 +40,36 @@ func defaultIpfsOptions() *ipfsOptions {
 	}
 }
 
-func UseStoreOpt(v bool) ipfsOpt {
+// UseStoreOpt handler for StoreEnabled IPFS config option
+func UseStoreOpt(v bool) IpfsOpt {
 	return func(o *ipfsOptions) {
 		o.StoreEnabled = v
 	}
 }
 
-func UseCacheOpt(cache PlanetaryCache) ipfsOpt {
+// UseCacheOpt handler for Cache IPFS config option
+func UseCacheOpt(cache PlanetaryCache) IpfsOpt {
 	return func(o *ipfsOptions) {
 		o.Cache = cache
 	}
 }
 
-func UseRelayOpt(v bool) ipfsOpt {
+// UseRelayOpt handler for RelayEnabled IPFS config option
+func UseRelayOpt(v bool) IpfsOpt {
 	return func(o *ipfsOptions) {
 		o.RelayEnabled = v
 	}
 }
 
-func UsePubSubOpt(v bool) ipfsOpt {
+// UsePubSubOpt handler for PubSubEnabled IPFS config option
+func UsePubSubOpt(v bool) IpfsOpt {
 	return func(o *ipfsOptions) {
 		o.PubSubEnabled = v
 	}
 }
 
-func UseNetworkProfileOpt(profile NetworkProfile) ipfsOpt {
+// UseNetworkProfileOpt - handler to set NetworkProfile IPFS config option
+func UseNetworkProfileOpt(profile NetworkProfile) IpfsOpt {
 	return func(o *ipfsOptions) {
 		switch profile {
 		case NetworkDefault, NetworkServer, NetworkTest, NetworkNoModify:
@@ -73,7 +80,8 @@ func UseNetworkProfileOpt(profile NetworkProfile) ipfsOpt {
 	}
 }
 
-func UseBootstrapPeersOpt(peers []string) ipfsOpt {
+// UseBootstrapPeersOpt - handler to set BootstrapPeers IPFS config option
+func UseBootstrapPeersOpt(peers []string) IpfsOpt {
 	return func(o *ipfsOptions) {
 		usePeers := make([]config.BootstrapPeer, 0, len(peers))
 		for _, addr := range peers {
@@ -93,7 +101,8 @@ func UseBootstrapPeersOpt(peers []string) ipfsOpt {
 	}
 }
 
-func ListenHostOpt(v string) ipfsOpt {
+// ListenHostOpt handler to set ListenHost IPFS config option
+func ListenHostOpt(v string) IpfsOpt {
 	return func(o *ipfsOptions) {
 		if len(v) > 0 {
 			o.ListenHost = v
@@ -101,7 +110,8 @@ func ListenHostOpt(v string) ipfsOpt {
 	}
 }
 
-func ListenPortOpt(v string) ipfsOpt {
+// ListenPortOpt handler to set ListenPort IPFS config option
+func ListenPortOpt(v string) IpfsOpt {
 	return func(o *ipfsOptions) {
 		if len(v) == 0 {
 			return
@@ -115,6 +125,7 @@ func ListenPortOpt(v string) ipfsOpt {
 	}
 }
 
+// NetworkProfile string that stores network settings
 type NetworkProfile string
 
 const (
