@@ -9,6 +9,8 @@ services:
     build: ../../cmd/atlant-auth
     env_file:
       - ".env"
+    ports:
+      - "33700:33700"
   node1:
     build: ./node1/
     ports:
