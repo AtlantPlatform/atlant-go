@@ -14,10 +14,12 @@ import (
 	"github.com/AtlantPlatform/atlant-go/rs"
 )
 
+// PrivateServer contains http server descriptor
 type PrivateServer struct {
 	mux http.Handler
 }
 
+// NewPrivateServer returns new instance of http server
 func NewPrivateServer() *PrivateServer {
 	return &PrivateServer{}
 }
@@ -35,6 +37,7 @@ func (p *PrivateServer) Listen(addr string) (string, error) {
 	return l.Addr().String(), nil
 }
 
+// RouteAPI sets up GIN routes for private API
 func (p *PrivateServer) RouteAPI(ctx APIContext) {
 	r := gin.Default()
 	r.GET("/private/v1/ping", p.PingHandler(ctx))
@@ -43,12 +46,14 @@ func (p *PrivateServer) RouteAPI(ctx APIContext) {
 	p.mux = r
 }
 
+// PingHandler returns HTTP response with NodeID
 func (p *PrivateServer) PingHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, ctx.NodeID())
 	}
 }
 
+// RecordsHandler returns HTTP response with records exported
 func (p *PrivateServer) RecordsHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := ctx.RecordStore().ExportRecords(ctx, c.Writer); err != nil {
@@ -58,6 +63,7 @@ func (p *PrivateServer) RecordsHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// AnnounceHandler endpoint to reace on event announcements
 func (p *PrivateServer) AnnounceHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var event *rs.EventAnnounce
