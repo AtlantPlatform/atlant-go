@@ -424,7 +424,7 @@ func newIpfsStore(prefix string, needInit bool, opts ...IpfsOpt) (*ipfsStore, er
 		if err != nil {
 			return nil, err
 		} else if locked {
-			err := fmt.Errorf("specified fs store prefix is locked by another process")
+			err := fmt.Errorf("specified fs store prefix is locked by another process (prefix=%s)", prefix)
 			return nil, err
 		}
 		if needInit {

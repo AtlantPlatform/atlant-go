@@ -208,7 +208,8 @@ func main() {
 func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 	defer closer.Close()
 	closer.Bind(func() {
-		log.Println("atlant-go node is shut down. Bye!")
+		log.Fatal("atlant-go node is shut down. Bye!")
+		os.Exit(1) // Fatal is not enough
 	})
 	log.Println("atlant-go node is starting")
 
