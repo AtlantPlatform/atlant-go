@@ -10,8 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
+	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/atlant-go/client"
 	cli "github.com/jawher/mow.cli"
@@ -22,10 +24,36 @@ var app = cli.App("atlant-lite", getBanner()+"\nA lightweight ATLANT node client
 var nodeAddr = app.StringOpt("A addr", "testnet", "Full node address (ex. localhost:33780)")
 
 func init() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	// log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
+
+var defaultLogLevel = "4"
+
+// logLevel is set in main func
+var logLevel *string
+
+func toNatural(s string, defaults uint64) int {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		// defaults in case of incorrect or empty "" value
+		return int(defaults)
+	} else if i < 0 {
+		// not defaults, because nobody expects +100 while specifying -100
+		return 0
+	}
+	return int(i)
 }
 
 func main() {
+
+	logLevel = app.String(cli.StringOpt{
+		Name:   "l log-level",
+		Desc:   "Logging verbosity (0 = minimum, 1...4, 5 = debug).",
+		EnvVar: "ANC_LOG_LEVEL",
+		Value:  defaultLogLevel,
+	})
+	log.SetLevel(log.Level(toNatural(*logLevel, 4)))
+
 	app.Command("ping", "Ping node and get its ID", cmdPing)
 	app.Command("version", "Get node version", cmdVersion)
 	app.Command("put", "Put an object into the store", cmdPutObject)

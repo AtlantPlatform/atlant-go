@@ -15,11 +15,15 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/atlant-go/proto"
 )
 
+// Client is an interface for node Client
 type Client interface {
 	Ping(ctx context.Context) (id string, err error)
 	Version(ctx context.Context) (ver string, err error)
@@ -31,10 +35,12 @@ type Client interface {
 	ListObjects(ctx context.Context, prefix string) (dirs []string, files []*ObjectMeta, err error)
 }
 
+// NewID returns ID for the protocol
 func NewID() string {
 	return proto.NewID()
 }
 
+// ObjectMeta - struction for Object Description
 type ObjectMeta struct {
 	ID              string `json:"id"`
 	Path            string `json:"path,omitempty"`
@@ -51,6 +57,7 @@ type rpcClient struct {
 	cli    *http.Client
 }
 
+// New should return RPC client
 func New(apiURL string) Client {
 	return &rpcClient{
 		apiURL: apiURL,
@@ -78,6 +85,7 @@ func (client *rpcClient) Version(ctx context.Context) (ver string, err error) {
 	return string(data), nil
 }
 
+// PutObjectInput structure of the object payload
 type PutObjectInput struct {
 	Body     io.ReadCloser
 	Size     int64
@@ -178,6 +186,7 @@ func (client *rpcClient) post(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	log.WithField("url", u).Debug("[client] Requesting URL")
 	req := &http.Request{
 		Method:        "POST",
 		URL:           u,
@@ -185,15 +194,21 @@ func (client *rpcClient) post(ctx context.Context,
 		ContentLength: length,
 	}
 	for k, v := range headers {
-		req.Header.Add(k, v)
+		if strings.TrimSpace(v) != "" {
+			log.WithFields(log.Fields{"k": k, "v": v}).Debug("[client] Header: Adding")
+			req.Header.Add(k, v)
+		}
 	}
 	req = req.WithContext(ctx)
+	log.Debug("[client] Doing request")
 	resp, err := client.cli.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	respBody, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
+	log.WithField("status", resp.Status).Debug("[client] resp.Status")
+	log.WithField("body", string(respBody)).Debug("[client] resp.Body")
 	if resp.StatusCode != http.StatusOK {
 		if len(respBody) > 0 {
 			err := fmt.Errorf("error %d: %s", resp.StatusCode, respBody)
