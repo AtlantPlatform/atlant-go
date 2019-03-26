@@ -49,7 +49,7 @@ sudo docker network create --driver bridge clusterof3 || true
 # starting the server
 start_service auth
 start_service node1
-sleep 15
+sleep 20
 get_id 33001 NODE1
 
 echo "[`date`] Giving Node 1 permission to write"
@@ -58,9 +58,13 @@ curl http://localhost:33700/ -d "$NODE1:write,sync"
 start_service node2
 start_service node3
 
-sleep 30
+sleep 20
 get_id 33002 NODE2
+sleep 10
 get_id 33003 NODE3
+
+sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
+sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
 
 # sudo docker-compose exec -T node1 ./atlant-lite --help
 echo "[`date`] Waiting for 10 seconds, collecting logs"
