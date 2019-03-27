@@ -70,7 +70,7 @@ func main() {
 
 	app.Before = func() {
 		log.SetLevel(log.Level(toNatural(*logLevel, 4)))
-		if log.GetLevel() <= log.InfoLevel {
+		if log.GetLevel() > log.InfoLevel {
 			gin.SetMode(gin.DebugMode)
 		} else {
 			gin.SetMode(gin.ReleaseMode)
