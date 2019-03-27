@@ -56,13 +56,13 @@ func main() {
 	logLevel = app.String(cli.StringOpt{
 		Name:   "l log-level",
 		Desc:   "Logging verbosity (0 = minimum, 1...4, 5 = debug).",
-		EnvVar: "AN_LOG_LEVEL",
+		EnvVar: "AUTH_LOG_LEVEL",
 		Value:  defaultLogLevel,
 	})
 
 	app.Before = func() {
 		log.SetLevel(log.Level(toNatural(*logLevel, 4)))
-		if log.GetLevel() <= log.InfoLevel {
+		if log.GetLevel() > log.InfoLevel {
 			gin.SetMode(gin.DebugMode)
 		} else {
 			gin.SetMode(gin.ReleaseMode)
@@ -88,6 +88,7 @@ func main() {
 		}
 
 		log.WithFields(log.Fields{
+			"mode":    *authMode,
 			"address": "http://" + *webListenAddr,
 		}).Println("Starting HTTP Server")
 
@@ -104,8 +105,20 @@ func main() {
 		var storage Storage
 		if *storagePath != "" {
 			storage = NewDiskStorage(*storagePath)
+			values, err := storage.GetAll()
+			if err != nil {
+				log.Warningf("Error reading disk storage %v", err)
+			}
+			log.WithFields(log.Fields{
+				"path":    *storagePath,
+				"records": len(values),
+			}).Infoln("Using Disk Storage")
+			for _, entry := range values {
+				log.WithField("value", entry.String()).Infoln("Loaded Entry")
+			}
 		} else {
 			storage = NewMemoryStorage()
+			log.Infoln("Using memory storage, no persistance")
 		}
 		r.HEAD("/", func(c *gin.Context) {
 			// endpoint to make sure server is alive

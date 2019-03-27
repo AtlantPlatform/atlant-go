@@ -5,7 +5,7 @@
 package main
 
 import (
-	"io"
+	"bufio"
 	"os"
 	"strings"
 	"sync"
@@ -78,10 +78,12 @@ func (m *MemoryStorage) Reset() {
 // NewDiskStorage initializes dummy persistent file storage
 // which is immutable to service restart
 func NewDiskStorage(path string) *DiskStorage {
-	return &DiskStorage{
+	ds := &DiskStorage{
 		path:       path,
 		memStorage: NewMemoryStorage(),
 	}
+	ds.Open()
+	return ds
 }
 
 func (d *DiskStorage) isError(err error) bool {
@@ -99,20 +101,10 @@ func (d *DiskStorage) Open() error {
 	}
 	defer file.Close()
 
-	// read file, line by line
-	var text = make([]byte, 2048)
-	for {
-		_, err = file.Read(text)
-		// break if finally arrived at end of file
-		if err == io.EOF {
-			break
-		}
-		// break if error occured
-		if err != nil && err != io.EOF {
-			d.isError(err)
-			break
-		}
-		line := strings.TrimSpace(string(text))
+	// read file, line by line:
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 		if len(line) > 0 {
 			entry, errEntry := NewEntryFromString(line)
 			if !d.isError(errEntry) {
