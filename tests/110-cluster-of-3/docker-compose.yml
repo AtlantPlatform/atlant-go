@@ -6,9 +6,7 @@ networks:
 
 services:
   auth:
-    build: ../../cmd/atlant-auth
-    env_file:
-      - ".env"
+    build: ./auth/
     ports:
       - "33700:33700"
   node1:
@@ -17,15 +15,21 @@ services:
       - "33001:33780"
     env_file:
       - ./.env
+    depends_on:
+      - auth
   node2:
     build: ./node2/
     ports:
       - "33002:33780"
     env_file:
       - ./.env
+    depends_on:
+      - node1
   node3:
     build: ./node3/
     ports:
       - "33003:33780"
     env_file:
       - ./.env
+    depends_on:
+      - node1

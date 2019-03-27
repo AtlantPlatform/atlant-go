@@ -7,7 +7,8 @@ cleanup() {
   echo "NODE1=$NODE1"
   echo "NODE2=$NODE2"
   echo "NODE3=$NODE3"
-  sudo docker-compose down
+  sudo docker-compose stop
+  sudo docker-compose rm -f
   sudo docker network rm clusterof3 || true  
 }
 
@@ -47,23 +48,17 @@ fi
 sudo docker network create --driver bridge clusterof3 || true
 
 # starting the server
-start_service auth
-start_service node1
-sleep 20
+sudo docker-compose up --build -d
+sleep 30
+
+# before continuing, ensure NODE1 exists
 get_id 33001 NODE1
-
-echo "[`date`] Giving Node 1 permission to write"
-curl http://localhost:33700/ -d "$NODE1:write,sync"
-
-start_service node2
-start_service node3
-
-sleep 20
 get_id 33002 NODE2
-sleep 10
 get_id 33003 NODE3
 
+echo "[`date`] Uploading file"
 sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
+echo "[`date`] Checking uploaded file"
 sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
 
 # sudo docker-compose exec -T node1 ./atlant-lite --help
