@@ -1,0 +1,19 @@
+version: '3'
+networks:
+  default:
+    external:
+      name: clusterof1
+
+services:
+  auth:
+    build: ./auth/
+    ports:
+      - "33700:33700"
+  node0:
+    build: ./node0/
+    ports:
+      - "33101:33780"
+    env_file:
+      - ./.env
+    depends_on:
+      - auth
