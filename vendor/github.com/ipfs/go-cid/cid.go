@@ -356,6 +356,9 @@ func (c Cid) Version() uint64 {
 	if len(c.str) == 34 && c.str[0] == 18 && c.str[1] == 32 {
 		return 0
 	}
+	if len(c.str) == 36 && c.str[0] == 0 && c.str[1] == 34 {
+		return 0
+	}
 	return 1
 }
 
