@@ -102,7 +102,6 @@ func (r *recordStore) getNodeRecords(ctx context.Context, nodeID string, rC chan
 		r := proto.ReadRootRecord(seg)
 		rC <- &r
 	}
-	return nil
 }
 
 func (r *recordStore) collectRecords(ctx context.Context, peers []string, rC chan<- *proto.Record) {
