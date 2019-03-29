@@ -106,9 +106,9 @@ func main() {
 			if !hasTestnetMark {
 				log.Fatalln("refusing to start in a testnet mode: not initialized for testnet.")
 			}
-			if *envTestnetKey != testKey {
-				log.Warningln("overriding testnet key works only upon initialization, no effect now.")
-			}
+			// if *envTestnetKey != testKey {
+			// 	log.Warningln("overriding testnet key works only upon initialization, no effect now.")
+			// }
 			if len(*envTestnetUrls) > 0 {
 				authcenter.InitWithURLs(*envTestnetUrls)
 			} else {
@@ -229,12 +229,6 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 		!fileNotEmpty(filepath.Join(*fsDir, ipfsConfigFile)) {
 		log.Fatalln("fs dir is not initialized, please run atlant-go init")
 	}
-	log.WithFields(log.Fields{
-		"Dir":     *fsDir,
-		"Host":    fsHost,
-		"Port":    fsPort,
-		"Profile": *fsNetworkProfile,
-	}).Println("IPFS node warmup in progress")
 	if *envTestnet {
 		if *envTestnetKey == testKey {
 			*fsBootstrapPeers = append(*fsBootstrapPeers, testBootstrapPeers...)
@@ -242,6 +236,13 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 	} else {
 		*fsBootstrapPeers = append(*fsBootstrapPeers, mainBootstrapPeers...)
 	}
+	log.WithFields(log.Fields{
+		"dir":     *fsDir,
+		"host":    fsHost,
+		"port":    fsPort,
+		"profile": *fsNetworkProfile,
+		"peers":   len(*fsBootstrapPeers),
+	}).Println("IPFS node warmup in progress")
 
 	// the following block is required to initialize badgerds via plugin loader
 	ldr, err := loader.NewPluginLoader("")
