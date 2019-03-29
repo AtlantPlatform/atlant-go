@@ -255,6 +255,10 @@ func (p *PublicServer) PutHandler(ctx APIContext) gin.HandlerFunc {
 			log.Debugln("record not exists, created:", path, r.Id())
 		}
 		if err != nil {
+			log.WithFields(log.Fields{
+				"path": path,
+				"id":   r.Id(),
+			}).Errorf("error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}
@@ -691,6 +695,9 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 		if prefix != "/" {
 			index.ParentPrefix = filepath.Dir(filepath.Dir(prefix))
 		}
+		log.WithFields(log.Fields{
+			"prefix": prefix,
+		}).Debug("Index: walking record")
 
 		seenDirs := make(map[string]struct{})
 		err := ctx.RecordStore().WalkRecords(ctx, "", func(path string, r *rs.Record) error {
@@ -724,7 +731,11 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			}); err == rs.ErrRecordNotFound {
 				return nil
 			} else if err != nil {
-				log.Warningf("failed to fetch record: %v", err)
+				log.WithFields(log.Fields{
+					"prefix":  prefix,
+					"path":    path,
+					"version": r.Current().Version(),
+				}).Warningf("Index failed to fetch record: %v", err)
 				return nil
 			} else {
 				meta = metaRecord.Object.Meta()
@@ -748,14 +759,26 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			return nil
 		})
 		if err == rs.ErrRecordNotFound || len(index.Files) == 0 {
+
+			// for index page, prefix is "/"
+			log.WithFields(log.Fields{
+				"prefix": prefix,
+			}).Debug("Index: Nothing was found")
 			c.Status(404)
 			return
 		} else if err != nil {
+			log.WithFields(log.Fields{
+				"prefix": prefix,
+			}).Errorf("Index error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}
 		data, err := index.Compile()
 		if err != nil {
+			log.WithFields(log.Fields{
+				"prefix":       prefix,
+				"parentPrefix": index.ParentPrefix,
+			}).Errorf("Index compilation error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}
