@@ -88,18 +88,18 @@ var (
 		EnvVar: "AN_WEB_LISTEN_ADDR",
 		Value:  "0.0.0.0:33780",
 	})
-	clusterEnabled = app.String(cli.StringOpt{
-		Name:   "cluster-enabled",
-		Desc:   "Enable cluster discovery (experimental).",
-		EnvVar: "AN_CLUSTER_ENABLED",
-		Value:  "false",
-	})
-	clusterName = app.String(cli.StringOpt{
-		Name:   "C cluster-name",
-		Desc:   "Specifies cluster name.",
-		EnvVar: "AN_CLUSTER_NAME",
-		Value:  "",
-	})
+	// clusterEnabled = app.String(cli.StringOpt{
+	// 	Name:   "cluster-enabled",
+	// 	Desc:   "Enable cluster discovery (experimental).",
+	// 	EnvVar: "AN_CLUSTER_ENABLED",
+	// 	Value:  "false",
+	// })
+	// clusterName = app.String(cli.StringOpt{
+	// 	Name:   "C cluster-name",
+	// 	Desc:   "Specifies cluster name.",
+	// 	EnvVar: "AN_CLUSTER_NAME",
+	// 	Value:  "",
+	// })
 	fsNetworkProfile = app.String(cli.StringOpt{
 		Name:   "N fs-network-profile",
 		Desc:   "Sets IPFS network profile. Available: default, server, no-modify.",

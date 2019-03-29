@@ -129,9 +129,9 @@ func main() {
 			defer catcher.Catch(catcher.RecvWrite(logger, true))
 			log.Println("Node ID:", ctx.NodeID())
 			log.Println("Session ID:", ctx.SessionID())
-			if len(*clusterName) == 0 {
-				*clusterName = ctx.SessionID()
-			}
+			// if len(*clusterName) == 0 {
+			// 	*clusterName = ctx.SessionID()
+			// }
 			if err := rs.GC(ctx.FileStore(), ctx.StateStore(), 3); err != nil {
 				log.Warningln("Record GC failed with:", err)
 			} else {
