@@ -21,6 +21,7 @@ start_service() {
   sudo docker-compose up -d --build $1
 }
 
+
 get_id() { 
     # port, resultvar
     local port=$1
@@ -48,20 +49,26 @@ sudo docker-compose up --build -d
 sleep 5
 
 # before continuing, ensure NODE1 exists
-# get_id 33101 NODE0
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33101/api/v1/ping)" != "200" ]]; do 
   echo "[`date`] Waiting for node0..."
   sleep 5; 
 done
 
 echo "[`date`] Uploading file"
+curl -s http://localhost:33101/api/v1/stats 
 sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
+
+echo "[`date`] Current Files"
+sudo docker-compose exec node0 echo "------ Requesting /data"
+sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 ls /data/  || true
+
+curl -s http://localhost:33101/api/v1/stats 
+sudo docker-compose exec node0 echo "------ Requesting FILE"
 echo "[`date`] Checking uploaded file"
 sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
 
-# sudo docker-compose exec -T node1 ./atlant-lite --help
-echo "[`date`] Waiting for 10 seconds, collecting logs"
-sleep 10
+# echo "[`date`] Waiting for 10 seconds, collecting logs"
+# sleep 10
 
 cleanup
-echo "[`date`] Cluster of 3 nodes was successfully verified"
+echo "[`date`] CREATE+GET case was successfully verified with single node"

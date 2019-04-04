@@ -1,10 +1,11 @@
 version: '3'
 services:
-  atlant_src:
+  atlant_testnet:
     build: ./
     dns:
       - 8.8.8.8
       - 4.4.4.4
+    env_file:
+      - ./.env
     ports:
-      - "33770:33770"
       - "33780:33780"
