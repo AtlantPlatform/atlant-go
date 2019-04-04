@@ -16,11 +16,13 @@ import (
 	"path"
 	"sync"
 
+	files "github.com/ipfs/go-ipfs-files"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/ipfs/go-ipfs/core"
 	"github.com/ipfs/go-ipfs/core/corerepo"
-	"github.com/ipfs/go-ipfs/core/coreunix"
 
 	bitswap "github.com/ipfs/go-bitswap"
 	cid "github.com/ipfs/go-cid"
@@ -80,11 +82,11 @@ func (s *ipfsStore) DeleteObject(ctx context.Context, ref ObjectRef) (*ObjectRef
 
 func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 	userMeta []byte, body io.ReadCloser, isDelete bool) (*ObjectRef, error) {
-	fileAdder, err := coreunix.NewAdder(ctx, s.node.Pinning, s.node.Blockstore, s.node.DAG)
-	if err != nil {
-		err = fmt.Errorf("failed to init IPFS file adder: %v", err)
-		return nil, err
-	}
+	// fileAdder, err := coreunix.NewAdder(ctx, s.node.Pinning, s.node.Blockstore, s.node.DAG)
+	// if err != nil {
+	// err = fmt.Errorf("failed to init IPFS file adder: %v", err)
+	// return nil, err
+	// }
 	if len(ref.ID) == 0 {
 		ref.ID = proto.NewID()
 	}
@@ -97,13 +99,26 @@ func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 		meta.SetIsDeleted(true)
 	}
 	meta.SetUserMeta(string(userMeta))
-	file, err := NewObjectFile(meta, body)
+	dir, err := NewObjectDir(meta, body)
 	if err != nil {
-		err = fmt.Errorf("failed to create object file: %v", err)
+		err = fmt.Errorf("failed to create object directory: %v", err)
 		return nil, err
 	}
-	// AddAllAndPin = (Finalize + PinRoot + RootNode) ? how could it be checked?
-	node, err := fileAdder.AddAllAndPin(file)
+	api, err := coreapi.NewCoreAPI(s.node)
+	if err != nil {
+		err = fmt.Errorf("failed to init core API: %v", err)
+		return nil, err
+	}
+	path, err := api.Unixfs().Add(context.Background(), dir.(files.Directory), options.Unixfs.Wrap(true))
+	if err != nil {
+		err = fmt.Errorf("failed to Add API: %v", err)
+		return nil, err
+	}
+	log.Infoln("[ipfsStore.putObject] node.path=", path.String())
+	node, err := api.Object().Get(context.Background(), path)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err != nil {
 		err = fmt.Errorf("failed to add and pin object file to DAG: %v", err)
 		return nil, err
