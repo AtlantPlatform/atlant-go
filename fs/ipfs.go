@@ -324,7 +324,7 @@ func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 			if _, ok, _ := s.node.Pinning.IsPinned(id); ok {
 				return fmt.Errorf("failed object unpinning: cid %s", id.String())
 			}
-			log.Debugf("successful unpinning cid: %s\n", id.String())
+			log.Debugf("successful unpinning cid: %s", id.String())
 		}
 	}
 	return s.node.Pinning.Flush()

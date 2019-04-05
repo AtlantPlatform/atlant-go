@@ -161,11 +161,11 @@ func cmdDeleteObject(c *cli.Cmd) {
 		}
 		cli := getClient()
 		ctx := context.Background()
-		meta, err := cli.DeleteObject(ctx, *id)
+		err := cli.DeleteObject(ctx, *id)
 		if err != nil {
 			log.Fatalln("[ERR]", err)
 		}
-		fmt.Println(jsonPrint(meta))
+		fmt.Println("Deleted")
 	}
 }
 

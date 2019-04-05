@@ -30,7 +30,7 @@ type Client interface {
 	PutObject(ctx context.Context, path string, obj *PutObjectInput) (*ObjectMeta, error)
 	GetContents(ctx context.Context, path, version string) ([]byte, error)
 	GetMeta(ctx context.Context, path, version string) (*ObjectMeta, error)
-	DeleteObject(ctx context.Context, id string) (*ObjectMeta, error)
+	DeleteObject(ctx context.Context, id string) error
 	ListVersions(ctx context.Context, path string) (id string, versions []*ObjectMeta, err error)
 	ListObjects(ctx context.Context, prefix string) (dirs []string, files []*ObjectMeta, err error)
 }
@@ -129,17 +129,12 @@ func (client *rpcClient) GetMeta(ctx context.Context, path, version string) (*Ob
 	return meta, nil
 }
 
-func (client *rpcClient) DeleteObject(ctx context.Context, id string) (*ObjectMeta, error) {
-	respData, err := client.post(ctx, "/api/v1/delete/"+id, "", nil, 0, nil)
+func (client *rpcClient) DeleteObject(ctx context.Context, id string) error {
+	_, err := client.post(ctx, "/api/v1/delete/"+id, "", nil, 0, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var meta *ObjectMeta
-	if err := json.Unmarshal(respData, &meta); err != nil {
-		err = fmt.Errorf("response unmarshal failed: %v", err)
-		return nil, err
-	}
-	return meta, nil
+	return nil
 }
 
 type listVersionsResponse struct {
