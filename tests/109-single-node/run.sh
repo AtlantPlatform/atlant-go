@@ -4,7 +4,6 @@ cd "$(dirname "$0")"  && echo "[`date`] `pwd`"
 
 cleanup() {
   sudo docker-compose logs
-  echo "NODE0=$NODE0"
   sudo docker-compose stop && sudo docker-compose rm -f && sudo docker network rm clusterof1 || true
 }
 
@@ -35,6 +34,23 @@ get_id() {
     expected $RESULT
 }
 
+atlant_client() {
+    sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 $@
+}
+
+show_files() {
+    echo "[`date`] ======="
+    echo "[`date`] Current Files Requesting /data"
+    atlant_client ls /data/  || true
+    echo "[`date`] Displaying file /data/lipsum.txt"
+    atlant_client get /data/lipsum.txt
+    echo "[`date`] ======="
+    echo 
+}
+
+show_stats() {
+    curl -s http://localhost:33101/api/v1/stats 
+}
 
 if ! [ "`which docker-compose`" ]; then
   echo 'Error: docker-compose must be installed' >&2
@@ -48,25 +64,29 @@ sudo docker network create --driver bridge clusterof1 || true
 sudo docker-compose up --build -d
 sleep 5
 
-# before continuing, ensure NODE1 exists
+# before continuing, ensure NODE0 exists
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33101/api/v1/ping)" != "200" ]]; do 
   echo "[`date`] Waiting for node0..."
   sleep 5; 
 done
 
 echo "[`date`] Uploading file"
-curl -s http://localhost:33101/api/v1/stats 
-sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
 
-echo "[`date`] Current Files"
-sudo docker-compose exec node0 echo "------ Requesting /data"
-sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 ls /data/  || true
+atlant_client put ./lipsum.txt /data/lipsum.txt
+show_files
+atlant_client put ./lipsum_v2.txt /data/lipsum.txt
+show_files
+atlant_client versions /data/lipsum.txt
 
-curl -s http://localhost:33101/api/v1/stats 
-sudo docker-compose exec node0 echo "------ Requesting FILE"
-echo "[`date`] Checking uploaded file"
-sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
+echo 
+export RECORDID=`sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 meta /data/lipsum.txt 2>&1 | grep '"id"' | cut -f4 -d'"'`
+echo "[`date`] RECORDID='$RECORDID'"
+echo 
+echo "[`date`] Deleting record"
+atlant_client delete $RECORDID
 
+# echo "[`date`] Deleting successful"
+# show_files
 # echo "[`date`] Waiting for 10 seconds, collecting logs"
 # sleep 10
 
