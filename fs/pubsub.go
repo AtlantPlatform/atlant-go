@@ -10,6 +10,7 @@ import (
 	"io"
 	"sync"
 
+	config "github.com/ipfs/go-ipfs-config"
 	log "github.com/sirupsen/logrus"
 	"github.com/xlab/catcher"
 
@@ -30,6 +31,7 @@ type PlanetaryPubSub interface {
 	Publish(topic string, data []byte) error
 	Subscribe(fn MessagePeekFunc, topics ...string) error
 	Close() error
+	Config() (*config.PubsubConfig, error)
 }
 
 type ipfsPubSub struct {
@@ -67,6 +69,14 @@ type Message struct {
 	Data     []byte   `json:"data,omitempty"`
 	Seqno    []byte   `json:"seqno,omitempty"`
 	TopicIDs []string `json:"topicIDs,omitempty"`
+}
+
+func (p *ipfsPubSub) Config() (*config.PubsubConfig, error) {
+	repoConfig, err := p.node.Repo.Config()
+	if err == nil {
+		return &repoConfig.Pubsub, nil
+	}
+	return nil, err
 }
 
 func (p *ipfsPubSub) Subscribe(fn MessagePeekFunc, topics ...string) error {

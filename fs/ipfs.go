@@ -719,7 +719,7 @@ func (s *ipfsStore) VerifyNode(code string) (string, error) {
 }
 
 // VerifyDataSignature - checks the signature for the node
-func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
+func VerifyDataSignature(nodeID string, sig string, data []byte) (bool, error) {
 	id, err := peer.IDB58Decode(nodeID)
 	if err != nil {
 		return false, err
@@ -728,8 +728,5 @@ func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_ = pk
-	// TODO: research weird case in sync routine
-	// return pk.Verify(data, []byte(sig))
-	return true, nil
+	return pk.Verify(data, []byte(sig))
 }
