@@ -450,6 +450,11 @@ func newIpfsStore(prefix string, needInit bool, opts ...IpfsOpt) (*ipfsStore, er
 			if err != nil {
 				return nil, err
 			}
+
+			// force signature verification on initialization
+			conf.Pubsub.DisableSigning = false
+			conf.Pubsub.StrictSignatureVerification = true
+
 			// force use of BadgerDB upon the init
 			if err := config.Profiles["badgerds"].Transform(conf); err != nil {
 				log.Warningf("failed to apply badgerds profile: %v", err)

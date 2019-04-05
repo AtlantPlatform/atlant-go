@@ -37,7 +37,5 @@ get_value "env"
 get_value "session"
 get_value "version"
 
-sudo docker-compose exec atlant_testnet ./atlant-lite -A 127.0.0.1:33780 debug
-
 # cleanup
 # echo "[`date`] Build and start of 'atlant-go' was successfully verified, congrats"
