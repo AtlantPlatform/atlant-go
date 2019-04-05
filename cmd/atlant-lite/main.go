@@ -58,8 +58,8 @@ func main() {
 	app.Command("version", "Get node version", cmdVersion)
 	app.Command("put", "Put an object into the store", cmdPutObject)
 	app.Command("get", "Get object contents from the store", cmdGetContents)
-	app.Command("meta", "Get object meta data from the store", cmdDeleteObject)
-	app.Command("delete", "Delete object from a store", cmdPing)
+	app.Command("meta", "Get object meta data from the store", cmdGetMeta)
+	app.Command("delete", "Delete object from a store", cmdDeleteObject)
 	app.Command("versions", "List all object versions", cmdListVersions)
 	app.Command("ls", "List all objects and sub-directories in a prefix", cmdListObjects)
 	if err := app.Run(os.Args); err != nil {
