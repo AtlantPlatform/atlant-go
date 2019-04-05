@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -59,7 +60,7 @@ func main() {
 	app.Command("put", "Put an object into the store", cmdPutObject)
 	app.Command("get", "Get object contents from the store", cmdGetContents)
 	app.Command("meta", "Get object meta data from the store", cmdGetMeta)
-	app.Command("delete", "Delete object from a store", cmdDeleteObject)
+	app.Command("delete", "Delete object from a store by its ID", cmdDeleteObject)
 	app.Command("versions", "List all object versions", cmdListVersions)
 	app.Command("ls", "List all objects and sub-directories in a prefix", cmdListObjects)
 	if err := app.Run(os.Args); err != nil {
@@ -155,6 +156,9 @@ func cmdDeleteObject(c *cli.Cmd) {
 	id := c.StringArg("ID", "", "Object ID in the store")
 	c.Spec = "ID"
 	c.Action = func() {
+		if strings.Contains(*id, "/") {
+			log.Fatalln("[ERR]", "ID can't contain slashes. Are you trying to use path instead?")
+		}
 		cli := getClient()
 		ctx := context.Background()
 		meta, err := cli.DeleteObject(ctx, *id)
