@@ -133,8 +133,6 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 		inboundWg:        new(sync.WaitGroup),
 		inboundPump:      pumpEventAnnounces(inboundAnnounces),
 		inboundAnnounces: inboundAnnounces,
-
-		validateSignature: true,
 	}
 	r.processInbound(4, 10*time.Minute)
 	r.processOutbound(4, 10*time.Minute)
@@ -147,11 +145,9 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 	pubsubConfig, err := sub.Config()
 	if err != nil {
 		log.Warningf("failed to find pubsub config: %v", err)
-	} else {
-		r.validateSignature = pubsubConfig.StrictSignatureVerification
 	}
-	if !r.validateSignature {
-		log.Warningf("Pubsub Config: StrictSignatureVerification is disabled. Please check fs/config")
+	if !pubsubConfig.StrictSignatureVerification {
+		log.Fatalln("Pubsub Config: StrictSignatureVerification is disabled. Please check fs/config")
 	}
 
 	topics := []string{
@@ -234,8 +230,6 @@ type recordStore struct {
 	inboundPump        chan *EventAnnounce
 	inboundAnnounces   chan *EventAnnounce
 	inboundWorkCounter uint64
-
-	validateSignature bool
 }
 
 type storeState int
@@ -326,7 +320,7 @@ func (r *recordStore) startSync(ctx context.Context, rC <-chan *proto.Record) er
 				log.Debugln("sync end")
 				r.setState(storeActiveState)
 				return nil
-			} else if err := validateRecord(record, r.validateSignature); err != nil {
+			} else if err := validateRecord(record); err != nil {
 				vv, _ := record.MarshalJSON()
 				log.Debugf("failed to validate record in sync: %v, record: %s", err, string(vv))
 				continue
@@ -375,21 +369,19 @@ func (r *recordStore) startSync(ctx context.Context, rC <-chan *proto.Record) er
 	}
 }
 
-func validateRecord(record *proto.Record, verifySignature bool) error {
+func validateRecord(record *proto.Record) error {
 	if record == nil {
 		return errors.New("record is nil")
 	}
 	ann := record.Current().Announce()
-	if verifySignature {
-		ok, err := fs.VerifyDataSignature(ann.NodeID(), ann.Signature(), ann.Envelope())
-		if err != nil {
-			return fmt.Errorf("error checking current version signature: %v", err)
-		} else if !ok {
-			// fmt.Println("1. Node ID=", ann.NodeID())
-			// fmt.Println("2. Signature=", ann.Signature())
-			// fmt.Println("3. Envelope=", hex.EncodeToString(ann.Envelope()))
-			return errors.New("incorrect signature for current version announce")
-		}
+	ok, err := fs.VerifyDataSignature(ann.NodeID(), ann.Signature(), ann.Envelope())
+	if err != nil {
+		return fmt.Errorf("error checking current version signature: %v", err)
+	} else if !ok {
+		// fmt.Println("1. Node ID=", ann.NodeID())
+		// fmt.Println("2. Signature=", ann.Signature())
+		// fmt.Println("3. Envelope=", hex.EncodeToString(ann.Envelope()))
+		return errors.New("incorrect signature for current version announce")
 	}
 	list := record.Previous()
 	for i := 0; i < list.Len(); i++ {
