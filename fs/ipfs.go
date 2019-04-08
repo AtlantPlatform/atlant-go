@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 
 	files "github.com/ipfs/go-ipfs-files"
@@ -733,5 +734,18 @@ func VerifyDataSignature(nodeID string, sig string, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return pk.Verify(data, []byte(sig))
+	var sigBuf []byte
+	if len(sig) == 128 {
+		// we might have received signature in hex format
+		sigBuf, err = hex.DecodeString(sig)
+		if err != nil {
+			return false, err
+		}
+	} else if len(sig) == 64 {
+		// we might have signature without any encoding
+		sigBuf = []byte(sig)
+	} else {
+		return false, errors.New("Unexpected signature length, expected 64, got " + strconv.Itoa(len(sig)))
+	}
+	return pk.Verify(data, sigBuf)
 }

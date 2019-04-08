@@ -5,6 +5,7 @@
 package fs
 
 import (
+	"encoding/hex"
 	"testing"
 
 	config "github.com/ipfs/go-ipfs-config"
@@ -53,11 +54,13 @@ func TestPeerSignature(t *testing.T) {
 	}
 }
 
-/*
 func TestVerifyDataSignature(t *testing.T) {
-	NodeID := "14V8BjQJ2E2xyQPC3FCFA5Aa9cMxBGpCkeDTPsYLxDqb7Xfne"
-	Signature := "0cb19a5136395d295aaf8823721150abc28647391686cac6a85a8a45b9ecf76f5ba776360871eefec151df97c529ef83b29098352b49b7a1321a2383f4b94e01"
-	SignedData := "101440031109da31157a0131297a01ff3031434254423459023033534e385358544350384441515650033030ff516d5043436f7550046d4e6e636a4b6f753139594d3741505850707276754a635357434a42575a66713f5048556d3470ff516d5770696863440463785943746f325979703667535a504862474464337a4e6546657161645445673f554737315a63"
+	NodeID := "14V8Bf9kL1KpZjDrM5JJmA4aT4J2heXQJbh28vmKVqaZbAMuk"
+	Signature, errSignature := hex.DecodeString("8ba5575d65a784f2284cf22190a926724f94cc1b7aaa0a61b7a96ab971f6c0d6ed3b01b20e4da30f5e1449c453662461e8df41c829fbb69bae2dc67a3aa50303")
+	if errSignature != nil {
+		t.Fatal(errSignature)
+	}
+	SignedData := "100f40031109da31157a0111290aff3031443758595948024e4645504b4b48364148514a52475935034e59ff516d535045556a4c0458686f5263434b5a5531534a3350514e75395251624578735a355466424234513f7054327169440000"
 	data, err := hex.DecodeString(SignedData)
 	if err != nil {
 		t.Fatal(err)
@@ -66,10 +69,8 @@ func TestVerifyDataSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// TODO: uncommnet when
 	if !ok {
 		t.Fatal("Signed Data was not verified")
 	}
 	_ = ok
 }
-*/
