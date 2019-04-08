@@ -9,7 +9,11 @@
 .idea/
 .DS_Store
 var/chain
-bin/
+/bin/
+vendor/github.com/ipfs/go-ipfs/bin/
+vendor/github.com/ipfs/go-ipfs/test/bin/
+vendor/github.com/ipfs/go-ipfs/test/*/bin/
+
 var/state
 var/fs
 var/log
