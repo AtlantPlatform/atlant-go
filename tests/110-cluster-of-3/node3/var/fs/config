@@ -68,7 +68,7 @@
   "Pubsub": {
     "DisableSigning": false,
     "Router": "",
-    "StrictSignatureVerification": false
+    "StrictSignatureVerification": true
   },
   "Reprovider": {
     "Interval": "12h",
