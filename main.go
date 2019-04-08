@@ -75,6 +75,9 @@ func main() {
 		} else {
 			gin.SetMode(gin.ReleaseMode)
 		}
+                if runtime.GOOS == "windows" {
+			gin.DisableConsoleColor()
+		}
 		log.Debugf("set app logging to %v", log.GetLevel())
 		procs := runtime.GOMAXPROCS(toNatural(*goMaxProcs, 128))
 		log.Debugf("set GOMAXPROCS to %d", procs)
