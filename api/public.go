@@ -325,7 +325,7 @@ func (p *PublicServer) LogGetHandler(ctx APIContext) gin.HandlerFunc {
 		year := numeric(c.Param("year"))
 		month := numeric(c.Param("month"))
 		day := numeric(c.Param("day"))
-		logFile := filepath.Join(dir, fmt.Sprintf("%s-%s-%s.log", year, month, day))
+		logFile := filepath.ToSlash(filepath.Join(dir, fmt.Sprintf("%s-%s-%s.log", year, month, day)))
 		c.File(logFile)
 	}
 }
@@ -646,7 +646,7 @@ func (p *PublicServer) ListAllHandler(ctx APIContext) gin.HandlerFunc {
 					return nil
 				}
 				seenDirs[dir] = struct{}{}
-				resp.Dirs = append(resp.Dirs, filepath.Join(prefix, dir)+"/")
+				resp.Dirs = append(resp.Dirs, filepath.ToSlash(filepath.Join(prefix, dir)+"/"))
 				return nil
 			}
 			var meta *proto.ObjectMeta
@@ -693,7 +693,7 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			Prefix: prefix,
 		}
 		if prefix != "/" {
-			index.ParentPrefix = filepath.Dir(filepath.Dir(prefix))
+			index.ParentPrefix = filepath.ToSlash(filepath.Dir(filepath.Dir(prefix)))
 		}
 		log.WithFields(log.Fields{
 			"prefix": prefix,
@@ -718,7 +718,7 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 				index.Files = append(index.Files, &IndexFile{
 					Dir:     true,
 					Name:    dir,
-					Path:    filepath.Join(prefix, dir) + "/",
+					Path:    filepath.ToSlash(filepath.Join(prefix, dir)) + "/",
 					Icon:    indexIcons["dir"][0],
 					IconAlt: indexIcons["dir"][1],
 				})
