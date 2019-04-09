@@ -30,7 +30,7 @@ get_value() {
 sudo docker-compose up -d --build
 
 # 30 second timeout
-let COUNTER=6
+let COUNTER=10
 # before continuing, ensure TESTNET NODE exists
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33780/api/v1/ping)" != "200" ]]; do 
   echo "[`date`] Waiting for testnet node... ($COUNTER)"
@@ -49,7 +49,10 @@ get_value "env"
 get_value "session"
 get_value "version"
 
-if [ "$@" != "stay" ]; then
+echo "[`date`] Getting index"
+curl -s http://localhost:33780/index/
+
+if [ "$1" != "stay" ]; then
   cleanup
   echo "[`date`] Build and start of 'atlant-go' was successfully verified, congrats"
 else
