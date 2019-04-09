@@ -5,7 +5,6 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version
       - image: circleci/golang:1.12
 
     working_directory: /go/src/github.com/AtlantPlatform/atlant-go
@@ -21,7 +20,17 @@ jobs:
       - run:
           name: Run unit tests
           command: go test -v ./...
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true 
       - run:
           name: Build docker image 
           command: docker build -t atlantplatform/atlant-node .
+  test:
+    docker:
+      - image: circleci/debian
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true 
+      - run:
+          name: Test Auth Server
+          command: ./tests/105-authserver/run.sh
