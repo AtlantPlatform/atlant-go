@@ -23,6 +23,7 @@ jobs:
   test:
     docker:
       - image: circleci/buildpack-deps:stretch-curl
+    working_directory: /go/src/github.com/AtlantPlatform/atlant-go
     steps:
       - setup_remote_docker:
           docker_layer_caching: true 

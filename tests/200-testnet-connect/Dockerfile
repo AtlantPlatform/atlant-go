@@ -1,4 +1,4 @@
-FROM atlantplatform:latest
+FROM atlantplatform/atlant-node:latest
 WORKDIR /AtlantPlatform/
 ENV AN_LOG_LEVEL=5
 

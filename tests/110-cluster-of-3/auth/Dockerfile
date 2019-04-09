@@ -1,4 +1,4 @@
-FROM atlantplatform:latest
+FROM atlantplatform/atlant-node:latest
 WORKDIR /AtlantPlatform/
 COPY auth.conf ./
 EXPOSE   33700
