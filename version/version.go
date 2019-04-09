@@ -8,13 +8,13 @@ package version
 const (
 	Maj = "1"
 	Min = "0"
-	Fix = "0-rc2"
+	Fix = "0-rc4"
 )
 
 var (
 	// Version is the current version of Atlant Node
 	// Must be a string because scripts like dist.sh read this file.
-	Version = "1.0.0-rc2"
+	Version = "1.0.0-rc4"
 
 	// GitCommit is the current HEAD set using ldflags.
 	GitCommit string
