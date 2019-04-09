@@ -1,5 +1,7 @@
 ## ATLANT Node
 
+Build status: [![CircleCI](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master.svg?style=svg&circle-token=c3fb3de524334e4566ccdae222192e585607f164)]()
+
 ### Intro
 
 `atlant-go` is a proof-of-concept ATLANT Node implementation, which contains the distributed store of all information pertaining to PTOs (Property Token Offerings), as described in the [ATLANT white paper](https://atlant.io/assets/documents/en/Atlant_WP_publish.pdf) (beginning on page 33).
