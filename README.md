@@ -42,8 +42,6 @@ Options:
       --warmup                 Allocate some time for IPFS to warmup and find peers. (env $AN_FS_WARMUP_DUR) (default "5s")
   -L, --fs-listen-addr         Sets IPFS listen address to communicate with peers. (env $AN_FS_LISTEN_ADDR) (default "0.0.0.0:33770")
   -W, --web-listen-addr        Sets webserver listen address for public API. (env $AN_WEB_LISTEN_ADDR) (default "0.0.0.0:33780")
-      --cluster-enabled        Enable cluster discovery (experimental). (env $AN_CLUSTER_ENABLED) (default "false")
-  -C, --cluster-name           Specifies cluster name. (env $AN_CLUSTER_NAME)
   -N, --fs-network-profile     Sets IPFS network profile. Available: default, server, no-modify. (env $AN_FS_NETWORK_PROFILE) (default "default")
   -T, --testnet                Switch node into testing mode, it runs in a seprate testnet environment. (env $AN_TESTNET_ENABLED)
       --testnet-key            Override the default testnet key with yours (generate it using atlant-keygen). (env $AN_TESTNET_KEY)
@@ -163,7 +161,7 @@ To make calls into the official testet, use either node address or an alias ("te
 
 ```
 $ atlant-lite -A testnet version
-1.0.0-rc2
+1.0.0-rc4
 ```
 
 ### License
