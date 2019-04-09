@@ -8,16 +8,19 @@ jobs:
       # specify the version
       - image: circleci/golang:1.12
 
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
     working_directory: /go/src/github.com/AtlantPlatform/atlant-go
+    environment:
+      GO111MODULE: "off"
     steps:
       - checkout
-
-      # specify any bash command here prefixed with `run: `
+      # Normally, this step would be in a custom primary image;
       - run: go get -u github.com/ethereum/go-ethereum
-      - run: GO111MODULE=off go build
-      - run: go test -v ./...
+      - run:
+          name: Build binaries
+          command: go build
+      - run:
+          name: Run unit tests
+          command: go test -v ./...
+      - run:
+          name: Build docker image 
+          command: docker build -t atlantplatform/atlant-node

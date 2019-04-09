@@ -1,6 +1,6 @@
 ## ATLANT Node
 
-Build status: [![CircleCI](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master.svg?style=svg&circle-token=c3fb3de524334e4566ccdae222192e585607f164)]()
+[![CircleCI](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master.svg?style=svg&circle-token=c3fb3de524334e4566ccdae222192e585607f164)](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master)
 
 ### Intro
 
