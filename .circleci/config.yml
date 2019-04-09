@@ -15,16 +15,11 @@ jobs:
       # Normally, this step would be in a custom primary image;
       - run: go get -u github.com/ethereum/go-ethereum
       - run:
-          name: Build binaries
+          name: Build atlant-node binary
           command: go build
       - run:
           name: Run unit tests
           command: go test -v ./...
-      - setup_remote_docker:
-          docker_layer_caching: true 
-      - run:
-          name: Build docker image 
-          command: docker build -t atlantplatform/atlant-node .
   test:
     docker:
       - image: circleci/debian
@@ -32,5 +27,23 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true 
       - run:
+          name: Build docker image 
+          command: docker build -t atlantplatform/atlant-node .
+      - run:
           name: Test Auth Server
           command: ./tests/105-authserver/run.sh
+      - run:
+          name: Test Single Node CRUD
+          command: ./tests/109-single-node/run.sh
+      - run:
+          name: Test Cluster of 3 Nodes
+          command: ./tests/110-single-node/run.sh
+      - run:
+          name: Testnet Connection
+          command: ./tests/200-testnet-connect/run.sh
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - build
+    - test
