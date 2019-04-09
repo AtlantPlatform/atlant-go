@@ -8,8 +8,8 @@ if ! [ "`which docker-compose`" ]; then
 fi
 
 cleanup() {
-  sudo docker-compose logs
-  sudo docker-compose stop && sudo docker-compose rm -f
+  docker-compose logs
+  docker-compose stop && docker-compose rm -f
 }
 
 expected() {
@@ -27,7 +27,7 @@ get_value() {
 }
 
 # starting the server
-sudo docker-compose up -d --build
+docker-compose up -d --build
 
 # 30 second timeout
 let COUNTER=10

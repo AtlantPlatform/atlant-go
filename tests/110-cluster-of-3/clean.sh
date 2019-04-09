@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-sudo docker-compose stop 
-sudo docker-compose rm -f 
+docker-compose stop 
+docker-compose rm -f 

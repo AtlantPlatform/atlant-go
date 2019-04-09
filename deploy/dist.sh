@@ -26,6 +26,7 @@ XC_TARGETS="darwin/amd64,linux/amd64,linux/arm,linux/386,windows/386,windows/amd
 # ldflags: -s Omit the symbol table and debug information.
 #	         -w Omit the DWARF symbol table.
 echo "==> Building..."
+GO111MODULE=off
 xgo -ldflags="-s -w -X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}" \
 	-targets=${XC_TARGETS} -out "" -dest="build/pkg/" \
 	github.com/AtlantPlatform/atlant-go

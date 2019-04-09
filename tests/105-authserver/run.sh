@@ -8,7 +8,7 @@ if ! [ "`which docker-compose`" ]; then
 fi
 
 # starting the server
-sudo docker-compose up -d --build
+docker-compose up -d --build
 retVal=$?
 if [ $retVal -ne 0 ]; then
     echo
@@ -38,5 +38,5 @@ if [ "$EXPECT_FORBIDDEN" != "No permission to update" ]; then
     exit 1
 fi
 
-sudo docker-compose logs
-sudo docker-compose down
+docker-compose logs
+docker-compose down

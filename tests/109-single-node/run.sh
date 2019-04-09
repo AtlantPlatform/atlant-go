@@ -3,8 +3,8 @@ set -e
 cd "$(dirname "$0")"  && echo "[`date`] `pwd`"
 
 cleanup() {
-  sudo docker-compose logs
-  sudo docker-compose stop && sudo docker-compose rm -f && sudo docker network rm clusterof1 || true
+  docker-compose logs
+  docker-compose stop && docker-compose rm -f && docker network rm clusterof1 || true
 }
 
 expected() {
@@ -17,7 +17,7 @@ expected() {
 
 start_service() {
   echo "[`date`] Starting $1"
-  sudo docker-compose up -d --build $1
+  docker-compose up -d --build $1
 }
 
 
@@ -35,7 +35,7 @@ get_id() {
 }
 
 atlant_client() {
-    sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 $@
+    docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 $@
 }
 
 show_files() {
@@ -58,10 +58,10 @@ if ! [ "`which docker-compose`" ]; then
 fi
 
 # create network if not exists
-sudo docker network create --driver bridge clusterof1 || true
+docker network create --driver bridge clusterof1 || true
 
 # starting the server
-sudo docker-compose up --build -d
+docker-compose up --build -d
 sleep 5
 
 # 30 second timeout
@@ -87,7 +87,7 @@ show_files
 atlant_client versions /data/lipsum.txt
 
 echo 
-export RECORDID=`sudo docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 meta /data/lipsum.txt 2>&1 | grep '"id"' | cut -f4 -d'"'`
+export RECORDID=`docker-compose exec node0 ./atlant-lite -A 127.0.0.1:33780 meta /data/lipsum.txt 2>&1 | grep '"id"' | cut -f4 -d'"'`
 echo "[`date`] RECORDID='$RECORDID'"
 echo 
 echo "[`date`] Deleting record"

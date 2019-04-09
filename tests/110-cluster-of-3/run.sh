@@ -3,18 +3,18 @@ set -e
 cd "$(dirname "$0")"  && pwd
 
 cleanup() {
-  sudo docker-compose logs
+  docker-compose logs
   echo "NODE1=$NODE1"
   echo "NODE2=$NODE2"
   echo "NODE3=$NODE3"
-  sudo docker-compose stop
-  sudo docker-compose rm -f
-  sudo docker network rm clusterof3 || true  
+  docker-compose stop
+  docker-compose rm -f
+  docker network rm clusterof3 || true  
 }
 
 atlant_client() {
   local node=$1
-  sudo docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 $2 $3 $4 $5 $6 $7 $8 $9
+  docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 $2 $3 $4 $5 $6 $7 $8 $9
 }
 
 show_files() {
@@ -43,7 +43,7 @@ expected() {
 
 start_service() {
   echo "[`date`] Starting $1"
-  sudo docker-compose up -d --build $1
+  docker-compose up -d --build $1
 }
 
 get_id() { 
@@ -85,8 +85,8 @@ wait_for_file() {
   let COUNTER=6
   while [ "$RES_CLIENT" == "" ]; do 
     echo "[`date`] Waiting for file on the $node ($COUNTER)"
-    echo "[`date`] Executing 'sudo docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn'"
-    RES_CLIENT=$(sudo docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn) || true
+    echo "[`date`] Executing 'docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn'"
+    RES_CLIENT=$(docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn) || true
     echo "[`date`] Result $RES_CLIENT"
     if [[ $RES_CLIENT == *"404 Not Found"* ]]; then
       RES_CLIENT=
@@ -107,24 +107,24 @@ if ! [ "`which docker-compose`" ]; then
 fi
 
 # create network if not exists
-sudo docker network create --driver bridge clusterof3 || true
+docker network create --driver bridge clusterof3 || true
 
 # starting the server
-sudo docker-compose up --build -d
+docker-compose up --build -d
 
 wait_for_node 33001 "NODE1"
 wait_for_node 33002 "NODE2"
 wait_for_node 33003 "NODE3"
 
 echo "[`date`] Uploading file to node1"
-sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
+docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
 echo "[`date`] Checking uploaded file on the 1st node"
-sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
+docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
 
 wait_for_file node2 /data/lipsum.txt
 wait_for_file node3 /data/lipsum.txt
 
-# sudo docker-compose exec -T node1 ./atlant-lite --help
+# docker-compose exec -T node1 ./atlant-lite --help
 echo "[`date`] Waiting for 10 seconds, collecting logs"
 sleep 10
 

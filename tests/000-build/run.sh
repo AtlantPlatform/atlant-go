@@ -7,4 +7,4 @@ if ! [ "`which docker`" ]; then
   exit 1
 fi
 
-sudo docker build -t atlantplatform ../../
+docker build -t atlantplatform ../../
