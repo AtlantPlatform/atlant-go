@@ -9,7 +9,7 @@ fi
 
 cleanup() {
   sudo docker-compose logs
-  sudo docker-compose down
+  sudo docker-compose stop && sudo docker-compose rm -f
 }
 
 expected() {
@@ -28,8 +28,20 @@ get_value() {
 
 # starting the server
 sudo docker-compose up -d --build
-echo "[`date`] Waiting for 8 seconds"
-sleep 8
+
+# 30 second timeout
+let COUNTER=6
+# before continuing, ensure TESTNET NODE exists
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33780/api/v1/ping)" != "200" ]]; do 
+  echo "[`date`] Waiting for testnet node... ($COUNTER)"
+  COUNTER=$((COUNTER - 1))
+  if [ "$COUNTER" == "0" ]; then
+    cleanup
+    echo "[`date`] TIMEOUT ERROR. TEST NODE NOT STARTED"
+    exit 1
+  fi
+  sleep 5
+done
 
 get_value "ping"
 get_value "newID"
@@ -37,5 +49,9 @@ get_value "env"
 get_value "session"
 get_value "version"
 
-# cleanup
-# echo "[`date`] Build and start of 'atlant-go' was successfully verified, congrats"
+if [ "$@" != "stay" ]; then
+  cleanup
+  echo "[`date`] Build and start of 'atlant-go' was successfully verified, congrats"
+else
+  echo "[`date`] Build and start of 'atlant-go' was successfully verified, node is still running"
+fi

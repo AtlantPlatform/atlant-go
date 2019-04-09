@@ -53,12 +53,53 @@ get_id() {
     local url="http://localhost:$port/api/v1/ping"
     echo "[`date`] Requesting URL $url"
     
-    RESULT=`curl $url`
+    RESULT=`curl -s $url`
     echo "[`date`] Received $2: $RESULT"
     eval $__resultvar="$RESULT"
     expected $RESULT
 }
 
+wait_for_node() {
+  local port=$1
+  local name=$2
+ 
+  let COUNTER=10
+  # before continuing, ensure NODE0 exists
+  while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$port/api/v1/ping)" != "200" ]]; do 
+    echo "[`date`] Waiting for $name at localhost:$port... ($COUNTER)"
+    COUNTER=$((COUNTER - 1))
+    if [ "$COUNTER" == "0" ]; then
+      echo "[`date`] TIMEOUT. $name NOT STARTED"
+      cleanup
+      exit 1
+    fi
+    sleep 5
+  done
+  get_id $port $name
+}
+
+wait_for_file() {
+  local node=$1
+  local fn=$2
+  # 20 second timeout
+  let COUNTER=6
+  while [ "$RES_CLIENT" == "" ]; do 
+    echo "[`date`] Waiting for file on the $node ($COUNTER)"
+    echo "[`date`] Executing 'sudo docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn'"
+    RES_CLIENT=$(sudo docker-compose exec $node ./atlant-lite -A 127.0.0.1:33780 get $fn) || true
+    echo "[`date`] Result $RES_CLIENT"
+    if [[ $RES_CLIENT == *"404 Not Found"* ]]; then
+      RES_CLIENT=
+    fi
+    COUNTER=$((COUNTER - 1))
+    if [ "$COUNTER" == "0" ]; then
+      cleanup
+      echo "[`date`] TIMEOUT ERROR. $node HAS NOT RECEIVED UPLOADED FILE"
+      exit 1
+    fi
+    sleep 5
+  done
+}
 
 if ! [ "`which docker-compose`" ]; then
   echo 'Error: docker-compose must be installed' >&2
@@ -70,41 +111,18 @@ sudo docker network create --driver bridge clusterof3 || true
 
 # starting the server
 sudo docker-compose up --build -d
-sleep 30
 
-# before continuing, ensure NODE1 exists
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33001/api/v1/ping)" != "200" ]]; do 
-  echo "[`date`] Waiting for node1..."
-  sleep 5; 
-done
-get_id 33001 NODE1
-
-
-# before continuing, ensure NODE2 exists
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33002/api/v1/ping)" != "200" ]]; do 
-  echo "[`date`] Waiting for node2..."
-  sleep 5; 
-done
-get_id 33002 NODE2
-
-# before continuing, ensure NODE3 exists
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33003/api/v1/ping)" != "200" ]]; do 
-  echo "[`date`] Waiting for node3..."
-  sleep 5; 
-done
-get_id 33003 NODE3
+wait_for_node 33001 "NODE1"
+wait_for_node 33002 "NODE2"
+wait_for_node 33003 "NODE3"
 
 echo "[`date`] Uploading file to node1"
 sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 put ./lipsum.txt /data/lipsum.txt
 echo "[`date`] Checking uploaded file on the 1st node"
 sudo docker-compose exec node1 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
 
-echo "[`date`] Waiting for 5 seconds"
-sleep 5
-echo "[`date`] Checking uploaded file on the 2nd node"
-sudo docker-compose exec node2 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
-echo "[`date`] Checking uploaded file on the 3rd node"
-sudo docker-compose exec node3 ./atlant-lite -A 127.0.0.1:33780 get /data/lipsum.txt
+wait_for_file node2 /data/lipsum.txt
+wait_for_file node3 /data/lipsum.txt
 
 # sudo docker-compose exec -T node1 ./atlant-lite --help
 echo "[`date`] Waiting for 10 seconds, collecting logs"

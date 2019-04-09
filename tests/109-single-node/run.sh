@@ -64,10 +64,18 @@ sudo docker network create --driver bridge clusterof1 || true
 sudo docker-compose up --build -d
 sleep 5
 
+# 30 second timeout
+let COUNTER=6
 # before continuing, ensure NODE0 exists
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33101/api/v1/ping)" != "200" ]]; do 
-  echo "[`date`] Waiting for node0..."
-  sleep 5; 
+  echo "[`date`] Waiting for node0... ($COUNTER)"
+  COUNTER=$((COUNTER - 1))
+  if [ "$COUNTER" == "0" ]; then
+    cleanup
+    echo "[`date`] TIMEOUT ERROR. NODE0 NOT STARTED"
+    exit 1
+  fi
+  sleep 5
 done
 
 echo "[`date`] Uploading file"
