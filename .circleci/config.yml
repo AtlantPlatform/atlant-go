@@ -20,8 +20,14 @@ jobs:
       - run:
           name: Run unit tests
           command: go test -v ./...
+  test:
+    docker:
+      - image: circleci/buildpack-deps:stretch-curl
+    working_directory: /go/src/github.com/AtlantPlatform/atlant-go
+    steps:
       - setup_remote_docker:
-          docker_layer_caching: true 
+          docker_layer_caching: true
+      - checkout
       - run:
           name: Build docker image 
           command: docker build -t atlantplatform/atlant-node .
@@ -37,3 +43,9 @@ jobs:
       - run:
           name: Testnet Connection
           command: ./tests/200-testnet-connect/run.sh
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test
