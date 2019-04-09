@@ -23,4 +23,4 @@ jobs:
           command: go test -v ./...
       - run:
           name: Build docker image 
-          command: docker build -t atlantplatform/atlant-node
+          command: docker build -t atlantplatform/atlant-node .
