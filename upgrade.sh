@@ -32,10 +32,15 @@ echo "== Merging go-ipfs deps"
 cp -rf ./vendor/github.com/ipfs/go-ipfs/vendor ./
 rm -rf ./vendor/github.com/ipfs/go-ipfs/vendor
 
-echo "== Outstanding vendors"
+echo "== vendor: davidlazar/go-crypto (submodules checkout)"
 rm -rf ./vendor/github.com/davidlazar/go-crypto
 git clone -q --depth=1 https://github.com/davidlazar/go-crypto \
     ./vendor/github.com/davidlazar/go-crypto
+
+echo "== vendor: sirupsen/logrus (unstable branch reference)"
+rm -rf ./vendor/github.com/sirupsen/logrus
+git clone -q --depth=1 https://github.com/sirupsen/logrus \
+  ./vendor/github.com/sirupsen/logrus
 
 echo "== Removing Extra(s)"
 cd vendor && find . -type d -name ".git" -exec rm -rf {} + && cd -
