@@ -6,7 +6,6 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.12
-
     working_directory: /go/src/github.com/AtlantPlatform/atlant-go
     environment:
       GO111MODULE: "off"
@@ -20,34 +19,21 @@ jobs:
       - run:
           name: Run unit tests
           command: go test -v ./...
-  test:
-    requires:
-      - build
-    docker:
-      - image: circleci/golang:1.12
-    working_directory: /go/src/github.com/AtlantPlatform/atlant-go
-    steps:
       - setup_remote_docker:
           docker_layer_caching: true
       - checkout
       - run:
           name: Build docker image 
           command: docker build -t atlantplatform/atlant-node .
-      - run:
-          name: Test Auth Server
-          command: ./tests/105-authserver/run.sh
-      - run:
-          name: Test Single Node CRUD
-          command: ./tests/109-single-node/run.sh
-      - run:
-          name: Test Cluster of 3 Nodes
-          command: ./tests/110-single-node/run.sh
-      - run:
-          name: Testnet Connection
-          command: ./tests/200-testnet-connect/run.sh
-workflows:
-  version: 2
-  build_and_test:
-    jobs:
-      - build
-      - test
+      # - run:
+      #     name: Test Auth Server
+      #     command: ./tests/105-authserver/run.sh
+      # - run:
+      #     name: Test Single Node CRUD
+      #     command: ./tests/109-single-node/run.sh
+      # - run:
+      #     name: Test Cluster of 3 Nodes
+      #     command: ./tests/110-single-node/run.sh
+      # - run:
+      #     name: Testnet Connection
+      #     command: ./tests/200-testnet-connect/run.sh
