@@ -44,12 +44,12 @@ var (
 		EnvVar: "LISTEN_ADDR",
 		Value:  "0.0.0.0:33700",
 	})
-	enableMetrics = app.Bool(cli.BoolOpt{
-		Name:   "m metrics",
-		Desc:   "Enable prometheus metrics",
-		EnvVar: "ENABLE_PROMETHEUS",
-		Value:  true,
-	})
+	// enableMetrics = app.Bool(cli.BoolOpt{
+	// 	Name:   "m metrics",
+	// 	Desc:   "Enable prometheus metrics",
+	// 	EnvVar: "ENABLE_PROMETHEUS",
+	// 	Value:  true,
+	// })
 	goMaxProcs = app.String(cli.StringOpt{
 		Name:   "p go-procs",
 		Desc:   "The maximum number of CPUs that can be used simultaneously by Go runtime.",

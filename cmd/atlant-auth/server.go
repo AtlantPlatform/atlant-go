@@ -12,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	ginprom "github.com/Depado/ginprom"
-
 	gin "github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 
@@ -93,14 +91,14 @@ func main() {
 		}).Println("Starting HTTP Server")
 
 		r := gin.Default()
-		if *enableMetrics {
-			p := ginprom.New(
-				ginprom.Engine(r),
-				ginprom.Subsystem("gin"),
-				ginprom.Path("/metrics"),
-			)
-			r.Use(p.Instrument())
-		}
+		// if *enableMetrics {
+		// 	p := ginprom.New(
+		// 		ginprom.Engine(r),
+		// 		ginprom.Subsystem("gin"),
+		// 		ginprom.Path("/metrics"),
+		// 	)
+		// 	r.Use(p.Instrument())
+		// }
 		// public endpoint for retrieving all nodes
 		var storage Storage
 		if *storagePath != "" {
