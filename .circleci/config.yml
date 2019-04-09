@@ -22,7 +22,7 @@ jobs:
           command: go test -v ./...
   test:
     docker:
-      - image: circleci/debian
+      - image: circleci/buildpack-deps:stretch-curl
     steps:
       - setup_remote_docker:
           docker_layer_caching: true 
@@ -43,7 +43,7 @@ jobs:
           command: ./tests/200-testnet-connect/run.sh
 workflows:
   version: 2
-  workflow:
+  build_and_test:
     jobs:
-    - build
-    - test
+      - build
+      - test
