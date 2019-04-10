@@ -75,7 +75,7 @@ func main() {
 		} else {
 			gin.SetMode(gin.ReleaseMode)
 		}
-                if runtime.GOOS == "windows" {
+		if runtime.GOOS == "windows" {
 			gin.DisableConsoleColor()
 		}
 		log.Debugf("set app logging to %v", log.GetLevel())
