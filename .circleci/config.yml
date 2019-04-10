@@ -19,21 +19,32 @@ jobs:
       - run:
           name: Run unit tests
           command: go test -v ./...
-      - setup_remote_docker:
-          docker_layer_caching: true
+  test:
+    docker:
+      - image: circleci/golang:1.12
+    machine:
+      enabled: true
+      docker_layer_caching: true
+    steps:
       - checkout
       - run:
           name: Build docker image 
           command: docker build -t atlantplatform/atlant-node .
-      # - run:
-      #     name: Test Auth Server
-      #     command: ./tests/105-authserver/run.sh
-      # - run:
-      #     name: Test Single Node CRUD
-      #     command: ./tests/109-single-node/run.sh
-      # - run:
-      #     name: Test Cluster of 3 Nodes
-      #     command: ./tests/110-single-node/run.sh
-      # - run:
-      #     name: Testnet Connection
-      #     command: ./tests/200-testnet-connect/run.sh
+      - run:
+          name: Test Auth Server
+          command: ./tests/105-authserver/run.sh
+      - run:
+          name: Test Single Node CRUD
+          command: ./tests/109-single-node/run.sh
+      - run:
+          name: Test Cluster of 3 Nodes
+          command: ./tests/110-cluster-of-3/run.sh
+      - run:
+          name: Testnet Connection
+          command: ./tests/200-testnet-connect/run.sh
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test
