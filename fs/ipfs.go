@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -14,26 +14,30 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 
+	files "github.com/ipfs/go-ipfs-files"
+	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
+	options "github.com/ipfs/interface-go-ipfs-core/options"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/AtlantPlatform/go-ipfs/core"
-	"github.com/AtlantPlatform/go-ipfs/core/corerepo"
-	"github.com/AtlantPlatform/go-ipfs/core/coreunix"
-	"github.com/AtlantPlatform/go-ipfs/exchange/bitswap"
-	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
-	ipld "github.com/AtlantPlatform/go-ipfs/go-ipld-format"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-interface-pnet"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
-	"github.com/AtlantPlatform/go-ipfs/go-libp2p-pnet"
-	"github.com/AtlantPlatform/go-ipfs/namesys"
-	ipath "github.com/AtlantPlatform/go-ipfs/path"
-	"github.com/AtlantPlatform/go-ipfs/path/resolver"
-	"github.com/AtlantPlatform/go-ipfs/repo"
-	"github.com/AtlantPlatform/go-ipfs/repo/config"
-	"github.com/AtlantPlatform/go-ipfs/repo/fsrepo"
-	uio "github.com/AtlantPlatform/go-ipfs/unixfs/io"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/corerepo"
+
+	bitswap "github.com/ipfs/go-bitswap"
+	cid "github.com/ipfs/go-cid"
+	config "github.com/ipfs/go-ipfs-config"
+	"github.com/ipfs/go-ipfs/namesys"
+	"github.com/ipfs/go-ipfs/repo"
+	"github.com/ipfs/go-ipfs/repo/fsrepo"
+	ipld "github.com/ipfs/go-ipld-format"
+	ipath "github.com/ipfs/go-path"
+	"github.com/ipfs/go-path/resolver"
+	uio "github.com/ipfs/go-unixfs/io"
+	ipnet "github.com/libp2p/go-libp2p-interface-pnet"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pnet "github.com/libp2p/go-libp2p-pnet"
 
 	"github.com/AtlantPlatform/atlant-go/logging"
 	"github.com/AtlantPlatform/atlant-go/proto"
@@ -64,6 +68,7 @@ func (s *ipfsStore) NodeID() string {
 	return s.node.Identity.Pretty()
 }
 
+// ErrNotFound is thrown if boject is not found in IPFS
 var ErrNotFound = errors.New("not found")
 
 func (s *ipfsStore) PutObject(ctx context.Context, ref ObjectRef,
@@ -78,11 +83,11 @@ func (s *ipfsStore) DeleteObject(ctx context.Context, ref ObjectRef) (*ObjectRef
 
 func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 	userMeta []byte, body io.ReadCloser, isDelete bool) (*ObjectRef, error) {
-	fileAdder, err := coreunix.NewAdder(ctx, s.node.Pinning, s.node.Blockstore, s.node.DAG)
-	if err != nil {
-		err = fmt.Errorf("failed to init IPFS file adder: %v", err)
-		return nil, err
-	}
+	// fileAdder, err := coreunix.NewAdder(ctx, s.node.Pinning, s.node.Blockstore, s.node.DAG)
+	// if err != nil {
+	// err = fmt.Errorf("failed to init IPFS file adder: %v", err)
+	// return nil, err
+	// }
 	if len(ref.ID) == 0 {
 		ref.ID = proto.NewID()
 	}
@@ -95,26 +100,28 @@ func (s *ipfsStore) putObject(ctx context.Context, ref ObjectRef,
 		meta.SetIsDeleted(true)
 	}
 	meta.SetUserMeta(string(userMeta))
-	file, err := NewObjectFile(meta, body)
+	dir, err := NewObjectDir(meta, body)
 	if err != nil {
-		err = fmt.Errorf("failed to create object file: %v", err)
+		err = fmt.Errorf("failed to create object directory: %v", err)
 		return nil, err
 	}
-	if err := fileAdder.AddFile(file); err != nil {
-		err = fmt.Errorf("failed to add object file to DAG: %v", err)
-		return nil, err
-	}
-	if _, err := fileAdder.Finalize(); err != nil {
-		err = fmt.Errorf("failed to finalize DAG node: %v", err)
-		return nil, err
-	}
-	if err := fileAdder.PinRoot(); err != nil {
-		err = fmt.Errorf("failed to pin object file, it will be soon collected by GC: %v", err)
-		return nil, err
-	}
-	node, err := fileAdder.RootNode()
+	api, err := coreapi.NewCoreAPI(s.node)
 	if err != nil {
-		err = fmt.Errorf("failed to get root node for the pinned object: %v", err)
+		err = fmt.Errorf("failed to init core API: %v", err)
+		return nil, err
+	}
+	path, err := api.Unixfs().Add(context.Background(), dir.(files.Directory), options.Unixfs.Wrap(true))
+	if err != nil {
+		err = fmt.Errorf("failed to Add API: %v", err)
+		return nil, err
+	}
+	log.Infoln("[ipfsStore.putObject] node.path=", path.String())
+	node, err := api.Object().Get(context.Background(), path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err != nil {
+		err = fmt.Errorf("failed to add and pin object file to DAG: %v", err)
 		return nil, err
 	}
 	ref.Version = node.Cid().String()
@@ -227,11 +234,10 @@ func (s *ipfsStore) ListObjects(ctx context.Context, ref ObjectRef) ([]ObjectRef
 				return list, nil
 			}
 			return nil, ErrNotFound
-		} else {
-			return nil, errors.New("ListObjects: version offsets are not supported yet")
 		}
+		return nil, errors.New("ListObjects: version offsets are not supported yet (VersionOffset == 0)")
 	} else if len(ref.Version) > 0 && ref.VersionOffset != 0 {
-		return nil, errors.New("ListObjects: version offsets are not supported yet")
+		return nil, errors.New("ListObjects: version offsets are not supported yet (VersionOffset != 0)")
 	}
 	cidC, err := s.node.Blockstore.AllKeysChan(ctx)
 	if err != nil {
@@ -308,7 +314,7 @@ func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 			prevVer = objRef.VersionPrevious
 			id, err := cid.Parse(objRef.Version)
 			if err != nil {
-				return errors.New(fmt.Sprintf("failed to parse ID to CID: %v", err))
+				return fmt.Errorf("failed to parse ID to CID: %v", err)
 			}
 			if _, ok, _ := s.node.Pinning.IsPinned(id); !ok {
 				continue
@@ -317,9 +323,9 @@ func (s *ipfsStore) PinNewest(ref ObjectRef, depth int) error {
 				return err
 			}
 			if _, ok, _ := s.node.Pinning.IsPinned(id); ok {
-				return errors.New(fmt.Sprintf("failed object unpinning: cid %s", id.String()))
+				return fmt.Errorf("failed object unpinning: cid %s", id.String())
 			}
-			log.Debugf("successful unpinning cid: %s\n", id.String())
+			log.Debugf("successful unpinning cid: %s", id.String())
 		}
 	}
 	return s.node.Pinning.Flush()
@@ -410,7 +416,7 @@ func (s *ipfsStore) Client() PlanetaryClient {
 	return s.client
 }
 
-func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, error) {
+func newIpfsStore(prefix string, needInit bool, opts ...IpfsOpt) (*ipfsStore, error) {
 	s := &ipfsStore{
 		prefix: prefix,
 		opts:   defaultIpfsOptions(),
@@ -428,12 +434,13 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			"mplex":  false,
 		},
 	}
+
 	if s.opts.StoreEnabled {
 		locked, err := fsrepo.LockedByOtherProcess(prefix)
 		if err != nil {
 			return nil, err
 		} else if locked {
-			err := fmt.Errorf("specified fs store prefix is locked by another process")
+			err := fmt.Errorf("specified fs store prefix is locked by another process (prefix=%s)", prefix)
 			return nil, err
 		}
 		if needInit {
@@ -444,6 +451,11 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			if err != nil {
 				return nil, err
 			}
+
+			// force signature verification on initialization
+			conf.Pubsub.DisableSigning = false
+			conf.Pubsub.StrictSignatureVerification = true
+
 			// force use of BadgerDB upon the init
 			if err := config.Profiles["badgerds"].Transform(conf); err != nil {
 				log.Warningf("failed to apply badgerds profile: %v", err)
@@ -455,6 +467,7 @@ func newIpfsStore(prefix string, needInit bool, opts ...ipfsOpt) (*ipfsStore, er
 			if err := initializeIpnsKeyspace(prefix); err != nil {
 				return nil, err
 			}
+			cfg.Online = false
 		}
 		r, err := s.openRepo(prefix)
 		if err != nil {
@@ -519,8 +532,8 @@ func (s *ipfsStore) applyConfig(cfg *config.Config) error {
 		fmt.Sprintf("/ip4/%s/tcp/%d", s.opts.ListenHost, s.opts.ListenPort),
 	}
 	// disable extra IPFS networking
-	cfg.Addresses.API = ""
-	cfg.Addresses.Gateway = ""
+	cfg.Addresses.API = []string{""}
+	cfg.Addresses.Gateway = []string{""}
 	cfg.API = config.API{}
 	cfg.Gateway = config.Gateway{}
 	return nil
@@ -600,10 +613,9 @@ func initializeIpnsKeyspace(prefix string) error {
 		return err
 	}
 	defer nd.Close()
-
-	if err := nd.SetupOfflineRouting(); err != nil {
-		return err
-	}
+	// if err := nd.SetupOfflineRouting(); err != nil {
+	//	return err
+	// }
 	return namesys.InitializeKeyspace(ctx, nd.Namesys, nd.Pinning, nd.PrivateKey)
 }
 
@@ -650,7 +662,7 @@ func (s *ipfsStore) BandwidthStats() *BandwidthStats {
 }
 
 func (s *ipfsStore) RepoStats() *RepoStats {
-	stats, err := corerepo.RepoStat(s.node, s.node.Context())
+	stats, err := corerepo.RepoStat(s.node.Context(), s.node)
 	if err != nil {
 		log.Warningf("failed to read core stats: %v", err)
 		return nil
@@ -712,7 +724,8 @@ func (s *ipfsStore) VerifyNode(code string) (string, error) {
 	return base64.StdEncoding.EncodeToString([]byte(jsoned)), nil
 }
 
-func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
+// VerifyDataSignature - checks the signature for the node
+func VerifyDataSignature(nodeID string, sig string, data []byte) (bool, error) {
 	id, err := peer.IDB58Decode(nodeID)
 	if err != nil {
 		return false, err
@@ -721,8 +734,18 @@ func VerifyDataSignature(nodeID, sig string, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	_ = pk
-	// TODO: research weird case in sync routine
-	// return pk.Verify(data, []byte(sig))
-	return true, nil
+	var sigBuf []byte
+	if len(sig) == 128 {
+		// we might have received signature in hex format
+		sigBuf, err = hex.DecodeString(sig)
+		if err != nil {
+			return false, err
+		}
+	} else if len(sig) == 64 {
+		// we might have signature without any encoding
+		sigBuf = []byte(sig)
+	} else {
+		return false, errors.New("Unexpected signature length, expected 64, got " + strconv.Itoa(len(sig)))
+	}
+	return pk.Verify(data, sigBuf)
 }

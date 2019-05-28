@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -13,20 +13,25 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/AtlantPlatform/go-ipfs/core"
-	peer "github.com/AtlantPlatform/go-ipfs/go-libp2p-peer"
-	ma "github.com/AtlantPlatform/go-ipfs/go-multiaddr"
-	"github.com/AtlantPlatform/go-ipfs/p2p"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/p2p"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 const streamProtoName = "/p2p/atlant"
 
 var (
-	ErrStreamDisabled     = errors.New("libp2pStreamMounting is disabled")
+	// ErrStreamDisabled is thrown if libp2pStreamMounting is disabled
+	ErrStreamDisabled = errors.New("libp2pStreamMounting is disabled")
+	// ErrListenerRegistered is thrown if listener is already registered
 	ErrListenerRegistered = errors.New("listener is already registered")
-	ErrListenerClosed     = errors.New("listener is closed")
+	// ErrListenerClosed is thrown if listener is closed
+	ErrListenerClosed = errors.New("listener is closed")
 )
 
+// PlanetaryListener is interface for P2P listening
 type PlanetaryListener interface {
 	Listen(addr string) error
 	IsRunning() bool
@@ -36,7 +41,6 @@ type PlanetaryListener interface {
 type p2pListener struct {
 	mux  *sync.Mutex
 	node *core.IpfsNode
-	info *p2p.ListenerInfo
 }
 
 func newListener(n *core.IpfsNode) *p2pListener {
@@ -54,42 +58,35 @@ func (l *p2pListener) Listen(addr string) error {
 	}
 	l.mux.Lock()
 	defer l.mux.Unlock()
-	if l.info != nil {
-		for _, lstInfo := range l.info.Registry.Listeners {
-			if lstInfo.Address.Equal(mlAddr) {
-				return ErrListenerRegistered
-			}
-		}
-		if l.info.Running {
-			// TODO: allow multiple listeners
-			return ErrListenerRegistered
-		}
-	}
-	log.Debugln("p2pListener on", mlAddr.String())
-	listenInfo, err := l.node.P2P.NewListener(l.node.Context(), streamProtoName, mlAddr)
-	if err != nil {
-		err = fmt.Errorf("failed to init P2P listener: %v", err)
-		return err
 
+	log.WithFields(log.Fields{
+		"multiaddress": mlAddr.String(),
+		"protocol":     streamProtoName,
+	}).Debugln("p2pListener started, p2p ForwardRemote")
+
+	_, errForward := l.node.P2P.ForwardRemote(l.node.Context(), protocol.ID(streamProtoName), mlAddr, true)
+	if errForward != nil {
+		errForward = fmt.Errorf("failed to init P2P listener: %v", err)
+		return errForward
 	}
-	l.info = listenInfo
-	return err
+	return nil
 }
 
 func (l *p2pListener) Close() error {
-	if !l.info.Running {
-		return ErrListenerClosed
-	}
-	return l.info.Close()
+	log.Infoln("p2pListener is closing")
+	l.node.Close()
+	return nil
 }
 
 func (l *p2pListener) IsRunning() bool {
-	if l.info == nil {
+	if l.node.P2P == nil {
 		return false
 	}
-	return l.info.Running
+	// not very sure that this is correct return
+	return len(l.node.P2P.ListenersP2P.Listeners) > 0
 }
 
+// PlanetaryClient http client for PlanetaryListener
 type PlanetaryClient interface {
 	// Do performs a HTTP request over the pipe to PlanetaryListener, e.g.
 	// GET http://14V8BYb2dEc3wEwLZroaaTDhoW9TjAMXBnH8BBHj8e5ZEF4hB/private/v1/ping
@@ -102,7 +99,7 @@ type p2pClient struct {
 	doWG *sync.WaitGroup
 	cli  *http.Client
 
-	remoteMap map[string]*p2p.ListenerInfo
+	remoteMap map[string]*p2p.Listeners
 	remoteMux *sync.RWMutex
 }
 
@@ -114,7 +111,7 @@ func newClient(n *core.IpfsNode) *p2pClient {
 	}
 }
 
-func (c *p2pClient) dial(ctx context.Context, nodeID string) (*p2p.ListenerInfo, error) {
+func (c *p2pClient) dial(ctx context.Context, nodeID string) (p2p.Listener, error) {
 	id, err := peer.IDB58Decode(nodeID)
 	if err != nil {
 		err = fmt.Errorf("failed to parse remote ID: %v", err)
@@ -125,7 +122,7 @@ func (c *p2pClient) dial(ctx context.Context, nodeID string) (*p2p.ListenerInfo,
 		err = fmt.Errorf("failed to assemble multiaddress: %v", err)
 		return nil, err
 	}
-	remote, err := c.node.P2P.Dial(ctx, nil, id, streamProtoName, bindAddr)
+	remote, err := c.node.P2P.ForwardLocal(ctx, id, streamProtoName, bindAddr)
 	if err != nil {
 		err = fmt.Errorf("failed to dial remote P2P listener: %v", err)
 		return nil, err
@@ -138,19 +135,25 @@ func (c *p2pClient) Do(req *http.Request) (*http.Response, error) {
 	if _, err := peer.IDB58Decode(req.URL.Host); err != nil {
 		err = fmt.Errorf("failed to parse nodeID from URL: %v", err)
 		return nil, err
-	} else {
-		nodeID = req.URL.Host
 	}
+	nodeID = req.URL.Host
+
 	c.doWG.Add(1)
 	defer c.doWG.Done()
+
+	log.WithFields(log.Fields{
+		"url":        req.URL,
+		"remoteAddr": req.RemoteAddr,
+	}).Debugln("Do.Request")
 
 	remote, err := c.dial(req.Context(), nodeID)
 	if err != nil {
 		err = fmt.Errorf("dial error: %v", err)
 		return nil, err
 	}
-	host, _ := remote.Address.ValueForProtocol(ma.P_IP4)
-	port, _ := remote.Address.ValueForProtocol(ma.P_TCP)
+
+	host, _ := remote.ListenAddress().ValueForProtocol(ma.P_IP4)
+	port, _ := remote.ListenAddress().ValueForProtocol(ma.P_TCP)
 	req.URL.Scheme = "http"
 	req.URL.Host = fmt.Sprintf("%s:%s", host, port)
 	return c.cli.Do(req)
@@ -161,9 +164,10 @@ func (c *p2pClient) Close() {
 	c.remoteMux.Lock()
 	defer c.remoteMux.Unlock()
 	for id, r := range c.remoteMap {
-		if err := r.Close(); err != nil {
-			log.Infoln(err)
-		}
+		r.Close(func(listener p2p.Listener) bool {
+			log.WithField("listener", listener).Infoln("p2pClient closed")
+			return true
+		})
 		delete(c.remoteMap, id)
 	}
 }

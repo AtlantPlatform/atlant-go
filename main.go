@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jawher/mow.cli"
+	cli "github.com/jawher/mow.cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/xlab/catcher"
 	"github.com/xlab/closer"
@@ -29,6 +29,7 @@ import (
 	"github.com/AtlantPlatform/atlant-go/rs"
 	"github.com/AtlantPlatform/atlant-go/state"
 	"github.com/AtlantPlatform/atlant-go/version"
+	"github.com/ipfs/go-ipfs/plugin/loader"
 )
 
 var app = cli.App("atlant-go", "ATLANT Node")
@@ -69,10 +70,13 @@ func main() {
 
 	app.Before = func() {
 		log.SetLevel(log.Level(toNatural(*logLevel, 4)))
-		if log.GetLevel() <= log.InfoLevel {
+		if log.GetLevel() > log.InfoLevel {
 			gin.SetMode(gin.DebugMode)
 		} else {
 			gin.SetMode(gin.ReleaseMode)
+		}
+		if runtime.GOOS == "windows" {
+			gin.DisableConsoleColor()
 		}
 		log.Debugf("set app logging to %v", log.GetLevel())
 		procs := runtime.GOMAXPROCS(toNatural(*goMaxProcs, 128))
@@ -105,11 +109,15 @@ func main() {
 			if !hasTestnetMark {
 				log.Fatalln("refusing to start in a testnet mode: not initialized for testnet.")
 			}
-			if *envTestnetKey != testKey {
-				log.Warningln("overriding testnet key works only upon initialization, no effect now.")
+			// if *envTestnetKey != testKey {
+			// 	log.Warningln("overriding testnet key works only upon initialization, no effect now.")
+			// }
+			if len(*envTestnetUrls) > 0 {
+				authcenter.InitWithURLs(*envTestnetUrls)
+			} else {
+				domains := append(*envTestnetDomains, authcenter.DefaultTestDomains...)
+				authcenter.InitWithDomains(domains)
 			}
-			domains := append(*envTestnetDomains, authcenter.DefaultTestDomains...)
-			authcenter.InitWithDomains(domains)
 			log.Println("ATLANT TestNet welcomes you!")
 		} else {
 			if len(*envTestnetDomains) > 0 {
@@ -124,9 +132,9 @@ func main() {
 			defer catcher.Catch(catcher.RecvWrite(logger, true))
 			log.Println("Node ID:", ctx.NodeID())
 			log.Println("Session ID:", ctx.SessionID())
-			if len(*clusterName) == 0 {
-				*clusterName = ctx.SessionID()
-			}
+			// if len(*clusterName) == 0 {
+			// 	*clusterName = ctx.SessionID()
+			// }
 			if err := rs.GC(ctx.FileStore(), ctx.StateStore(), 3); err != nil {
 				log.Warningln("Record GC failed with:", err)
 			} else {
@@ -203,7 +211,8 @@ func main() {
 func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 	defer closer.Close()
 	closer.Bind(func() {
-		log.Println("atlant-go node is shut down. Bye!")
+		log.Fatal("atlant-go node is shut down. Bye!")
+		os.Exit(1) // Fatal is not enough
 	})
 	log.Println("atlant-go node is starting")
 
@@ -223,12 +232,6 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 		!fileNotEmpty(filepath.Join(*fsDir, ipfsConfigFile)) {
 		log.Fatalln("fs dir is not initialized, please run atlant-go init")
 	}
-	log.WithFields(log.Fields{
-		"Dir":     *fsDir,
-		"Host":    fsHost,
-		"Port":    fsPort,
-		"Profile": *fsNetworkProfile,
-	}).Println("IPFS node warmup in progress")
 	if *envTestnet {
 		if *envTestnetKey == testKey {
 			*fsBootstrapPeers = append(*fsBootstrapPeers, testBootstrapPeers...)
@@ -236,6 +239,21 @@ func runWithPlanetaryContext(fn func(ctx PlanetaryContext)) {
 	} else {
 		*fsBootstrapPeers = append(*fsBootstrapPeers, mainBootstrapPeers...)
 	}
+	log.WithFields(log.Fields{
+		"dir":     *fsDir,
+		"host":    fsHost,
+		"port":    fsPort,
+		"profile": *fsNetworkProfile,
+		"peers":   len(*fsBootstrapPeers),
+	}).Println("IPFS node warmup in progress")
+
+	// the following block is required to initialize badgerds via plugin loader
+	ldr, err := loader.NewPluginLoader("")
+	if err != nil {
+		log.Fatalln("NewPluginLoader failed:", err)
+	}
+	ldr.Inject()
+
 	fileStore, err := fs.NewPlanetaryFileStore(*fsDir,
 		fs.UseBootstrapPeersOpt(*fsBootstrapPeers),
 		fs.UseRelayOpt(toBool(*fsRelayEnabled)),
@@ -297,7 +315,7 @@ func verify(cmd *cli.Cmd) {
 func versionCmd(c *cli.Cmd) {
 	c.Action = func() {
 		fmt.Fprintf(os.Stdout, "atlant-go version %s\n", version.Version)
-		fmt.Fprintln(os.Stderr, `atlant-go Copyright (C) 2018 ATLANT
+		fmt.Fprintln(os.Stderr, `atlant-go Copyright (C) 2019 ATLANT
     This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.
     This is free software, and you are welcome to redistribute it
     under certain conditions; governored by GNU GPLv3 license.`)
@@ -355,6 +373,14 @@ func nodeInitCmd(c *cli.Cmd) {
 				"File": keyPath,
 			}).Println("generated new private key for IPFS swarm")
 		}
+
+		// the following block is required to initialize badgerds via plugin loader
+		ldr, err := loader.NewPluginLoader("")
+		if err != nil {
+			log.Fatalln("NewPluginLoader failed:", err)
+		}
+		ldr.Inject()
+
 		log.WithFields(log.Fields{
 			"Dir":      *fsDir,
 			"SwarmKey": keyPath,

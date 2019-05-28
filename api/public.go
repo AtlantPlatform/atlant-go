@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -29,21 +29,25 @@ import (
 	"github.com/AtlantPlatform/atlant-go/rs"
 )
 
+// PublicServer to contain server and time of the start
 type PublicServer struct {
 	mux       *gin.Engine
 	startedAt time.Time
 }
 
+// NewPublicServer is a constructor of the PublicServer
 func NewPublicServer() *PublicServer {
 	return &PublicServer{
 		startedAt: time.Now(),
 	}
 }
 
+// ListenAndServe starts server binded to address i.e. "0.0.0.0:33780"
 func (p *PublicServer) ListenAndServe(addr string) error {
 	return p.mux.Run(addr)
 }
 
+// RouteAPI initializes GIN routes
 func (p *PublicServer) RouteAPI(ctx APIContext) {
 	r := gin.Default()
 	r.POST("/api/v1/put/*path", p.PutHandler(ctx))
@@ -74,30 +78,35 @@ func (p *PublicServer) RouteAPI(ctx APIContext) {
 	p.mux = r
 }
 
+// PingHandler returns HTTP response with Node ID
 func (p *PublicServer) PingHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, ctx.NodeID())
 	}
 }
 
+// IDHandler returns HTTP response with New ID
 func (p *PublicServer) IDHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, proto.NewID())
 	}
 }
 
+// EnvHandler returns HTTP response with current environment
 func (p *PublicServer) EnvHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, ctx.Env())
 	}
 }
 
+// SessionHandler returns HTTP response with current sesion Id
 func (p *PublicServer) SessionHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, ctx.SessionID())
 	}
 }
 
+// VersionHandler returns HTTP response with build version
 func (p *PublicServer) VersionHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(200, ctx.Version())
@@ -105,11 +114,15 @@ func (p *PublicServer) VersionHandler(ctx APIContext) gin.HandlerFunc {
 }
 
 const (
+	// KB - kilobytes
 	KB = 1024
+	// MB - megabytes
 	MB = 1024 * KB
+	// GB - gigabytes
 	GB = 1024 * MB
 )
 
+// DiskStats contains stats of disks usage
 type DiskStats struct {
 	*fs.DiskStats
 
@@ -126,6 +139,7 @@ type DiskStats struct {
 	GBytesFree float64 `json:"gb_free"`
 }
 
+// Stats is container for
 type Stats struct {
 	Uptime         string             `json:"uptime,omitempty"`
 	DiskStats      *DiskStats         `json:"disk_stats,omitempty"`
@@ -135,6 +149,7 @@ type Stats struct {
 	BadgerStats    *rs.BadgerStats    `json:"badger_stats,omitempty"`
 }
 
+// StatsHandler endpoint returning JSON with all collects stats
 func (p *PublicServer) StatsHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		stats := &Stats{
@@ -164,6 +179,7 @@ func (p *PublicServer) StatsHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// ContentHandler is endpoint to return content
 func (p *PublicServer) ContentHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r, err := ctx.RecordStore().ReadRecord(ctx, c.Param("path"), rs.ReadOptions{
@@ -187,6 +203,7 @@ func (p *PublicServer) ContentHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// MetaHandler is endpoint to get meta information on the record
 func (p *PublicServer) MetaHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r, err := ctx.RecordStore().ReadRecord(ctx, c.Param("path"), rs.ReadOptions{
@@ -208,6 +225,7 @@ func (p *PublicServer) MetaHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// PutHandler is endpoint to set Meta information
 func (p *PublicServer) PutHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		size, _ := strconv.ParseInt(c.Request.Header.Get("Content-Length"), 10, 64)
@@ -237,6 +255,10 @@ func (p *PublicServer) PutHandler(ctx APIContext) gin.HandlerFunc {
 			log.Debugln("record not exists, created:", path, r.Id())
 		}
 		if err != nil {
+			log.WithFields(log.Fields{
+				"path": path,
+				"id":   r.Id(),
+			}).Errorf("error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}
@@ -244,6 +266,7 @@ func (p *PublicServer) PutHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// DeleteHandler endpoint to delete record from the store
 func (p *PublicServer) DeleteHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		r, err := ctx.RecordStore().DeleteRecord(ctx, c.Param("id"))
@@ -268,6 +291,7 @@ func (p *PublicServer) DeleteHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// LogListHandler endpoint to return list of available logs
 func (p *PublicServer) LogListHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dir := ctx.LogDir()
@@ -290,6 +314,7 @@ func (p *PublicServer) LogListHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// LogGetHandler endpoint
 func (p *PublicServer) LogGetHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dir := ctx.LogDir()
@@ -300,16 +325,18 @@ func (p *PublicServer) LogGetHandler(ctx APIContext) gin.HandlerFunc {
 		year := numeric(c.Param("year"))
 		month := numeric(c.Param("month"))
 		day := numeric(c.Param("day"))
-		logFile := filepath.Join(dir, fmt.Sprintf("%s-%s-%s.log", year, month, day))
+		logFile := filepath.ToSlash(filepath.Join(dir, fmt.Sprintf("%s-%s-%s.log", year, month, day)))
 		c.File(logFile)
 	}
 }
 
+// DistributionInfo to store beat report
 type DistributionInfo struct {
 	Report     *rs.BeatReport `json:"report"`
 	HoursTotal uint64         `json:"hours_total"`
 }
 
+// TokenDistributionInfo endpoint to show token distribution
 func (p *PublicServer) TokenDistributionInfo(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accountAddr := strings.ToLower(c.Query("account"))
@@ -344,6 +371,7 @@ func (p *PublicServer) TokenDistributionInfo(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// KYCStatus is endpoint to return KYC account status
 func (p *PublicServer) KYCStatus(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accountAddr := strings.ToLower(c.Query("account"))
@@ -367,6 +395,7 @@ func (p *PublicServer) KYCStatus(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// TokenBalance - endpoint to return Token Balance for the wallet (plain text)
 func (p *PublicServer) TokenBalance(ctx APIContext, token string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accountAddr := strings.ToLower(c.Query("account"))
@@ -390,6 +419,7 @@ func (p *PublicServer) TokenBalance(ctx APIContext, token string) gin.HandlerFun
 	}
 }
 
+// PropertyTokenBalance is endpoint to respond with property token balance
 func (p *PublicServer) PropertyTokenBalance(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accountAddr := strings.ToLower(c.Query("account"))
@@ -464,6 +494,7 @@ func serveObject(c *gin.Context, r io.ReadCloser, meta *proto.ObjectMeta) {
 	return
 }
 
+// IndexTemplate is a template to generate assets as Golang code
 //go:generate go-bindata-assetfs -pkg api assets/templates assets/icons
 var IndexTemplate = template.Must(
 	template.New("Index").Parse(
@@ -471,12 +502,14 @@ var IndexTemplate = template.Must(
 	),
 )
 
+// Index stores the files and folder descriptor
 type Index struct {
 	Prefix       string
 	ParentPrefix string
 	Files        []*IndexFile
 }
 
+// Compile apache-like folder
 func (i *Index) Compile() ([]byte, error) {
 	var buf bytes.Buffer
 	if err := IndexTemplate.Execute(&buf, i); err != nil {
@@ -485,6 +518,7 @@ func (i *Index) Compile() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// IndexFile is directory index descriptor
 type IndexFile struct {
 	Dir          bool
 	Name         string
@@ -496,6 +530,7 @@ type IndexFile struct {
 	IconAlt      string
 }
 
+// IndexFilesByName is array of directories index descriptor
 type IndexFilesByName []*IndexFile
 
 func (s IndexFilesByName) Len() int           { return len(s) }
@@ -526,11 +561,13 @@ var indexIcons = map[string][]string{
 	"default": []string{"generic.png", "[OBJ]"},
 }
 
+// ListVersionsResponse contains list of versions of the object
 type ListVersionsResponse struct {
 	ID       string              `json:"id"`
 	Versions []*proto.ObjectMeta `json:"versions"`
 }
 
+// ListVersionsHandler - endpoint to return all versions for the object under given path
 func (p *PublicServer) ListVersionsHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var versions []*proto.ObjectMeta
@@ -570,17 +607,20 @@ func (p *PublicServer) ListVersionsHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// ListResponse structure of response for the client = list of Dirs and Files
 type ListResponse struct {
 	Dirs  []string
 	Files []*proto.ObjectMeta
 }
 
+// ObjectMetas is array of ObjectMeta
 type ObjectMetas []*proto.ObjectMeta
 
 func (s ObjectMetas) Len() int           { return len(s) }
 func (s ObjectMetas) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s ObjectMetas) Less(i, j int) bool { return s[i].Path() < s[j].Path() }
 
+// ListAllHandler - endpoint to response with all current versions under provided path
 func (p *PublicServer) ListAllHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		prefix := c.Param("prefix")
@@ -606,7 +646,7 @@ func (p *PublicServer) ListAllHandler(ctx APIContext) gin.HandlerFunc {
 					return nil
 				}
 				seenDirs[dir] = struct{}{}
-				resp.Dirs = append(resp.Dirs, filepath.Join(prefix, dir)+"/")
+				resp.Dirs = append(resp.Dirs, filepath.ToSlash(filepath.Join(prefix, dir)+"/"))
 				return nil
 			}
 			var meta *proto.ObjectMeta
@@ -639,6 +679,7 @@ func (p *PublicServer) ListAllHandler(ctx APIContext) gin.HandlerFunc {
 	}
 }
 
+// IndexHandler endpoint to response with all contents
 func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		prefix := c.Param("prefix")
@@ -652,8 +693,11 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			Prefix: prefix,
 		}
 		if prefix != "/" {
-			index.ParentPrefix = filepath.Dir(filepath.Dir(prefix))
+			index.ParentPrefix = filepath.ToSlash(filepath.Dir(filepath.Dir(prefix)))
 		}
+		log.WithFields(log.Fields{
+			"prefix": prefix,
+		}).Debug("Index: walking record")
 
 		seenDirs := make(map[string]struct{})
 		err := ctx.RecordStore().WalkRecords(ctx, "", func(path string, r *rs.Record) error {
@@ -662,6 +706,7 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			} else if !strings.HasPrefix(path, prefix) {
 				return nil
 			}
+			log.WithField("path", path).Debug("Index: walking record")
 			path = strings.TrimPrefix(path, prefix)
 			parts := strings.Split(path, "/")
 			if len(parts) > 1 {
@@ -673,7 +718,7 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 				index.Files = append(index.Files, &IndexFile{
 					Dir:     true,
 					Name:    dir,
-					Path:    filepath.Join(prefix, dir) + "/",
+					Path:    filepath.ToSlash(filepath.Join(prefix, dir)) + "/",
 					Icon:    indexIcons["dir"][0],
 					IconAlt: indexIcons["dir"][1],
 				})
@@ -686,7 +731,11 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			}); err == rs.ErrRecordNotFound {
 				return nil
 			} else if err != nil {
-				log.Warningf("failed to fetch record: %v", err)
+				log.WithFields(log.Fields{
+					"prefix":  prefix,
+					"path":    path,
+					"version": r.Current().Version(),
+				}).Warningf("Index failed to fetch record: %v", err)
 				return nil
 			} else {
 				meta = metaRecord.Object.Meta()
@@ -710,14 +759,26 @@ func (p *PublicServer) IndexHandler(ctx APIContext) gin.HandlerFunc {
 			return nil
 		})
 		if err == rs.ErrRecordNotFound || len(index.Files) == 0 {
+
+			// for index page, prefix is "/"
+			log.WithFields(log.Fields{
+				"prefix": prefix,
+			}).Debug("Index: Nothing was found")
 			c.Status(404)
 			return
 		} else if err != nil {
+			log.WithFields(log.Fields{
+				"prefix": prefix,
+			}).Errorf("Index error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}
 		data, err := index.Compile()
 		if err != nil {
+			log.WithFields(log.Fields{
+				"prefix":       prefix,
+				"parentPrefix": index.ParentPrefix,
+			}).Errorf("Index compilation error: %v", err)
 			c.String(500, "error: %v", err)
 			return
 		}

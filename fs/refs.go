@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -8,8 +8,8 @@ import (
 	"context"
 	"strings"
 
-	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
-	ipld "github.com/AtlantPlatform/go-ipfs/go-ipld-format"
+	cid "github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // RefWriter implementation from go-ipfs/commands/refs.go
@@ -39,11 +39,11 @@ func (rw *RefWriter) writeRefsRecursive(n ipld.Node) (int, error) {
 	var count int
 	for i, ng := range ipld.GetDAG(rw.Ctx, rw.DAG, n) {
 		lc := n.Links()[i].Cid
-		if rw.skip(lc) {
+		if rw.skip(&lc) {
 			continue
 		}
 
-		if err := rw.WriteEdge(nc, lc, n.Links()[i].Name); err != nil {
+		if err := rw.WriteEdge(&nc, &lc, n.Links()[i].Name); err != nil {
 			return count, err
 		}
 
@@ -64,18 +64,17 @@ func (rw *RefWriter) writeRefsRecursive(n ipld.Node) (int, error) {
 func (rw *RefWriter) writeRefsSingle(n ipld.Node) (int, error) {
 	c := n.Cid()
 
-	if rw.skip(c) {
+	if rw.skip(&c) {
 		return 0, nil
 	}
 
 	count := 0
 	for _, l := range n.Links() {
 		lc := l.Cid
-		if rw.skip(lc) {
+		if rw.skip(&lc) {
 			continue
 		}
-
-		if err := rw.WriteEdge(c, lc, l.Name); err != nil {
+		if err := rw.WriteEdge(&c, &lc, l.Name); err != nil {
 			return count, err
 		}
 		count++
@@ -93,14 +92,14 @@ func (rw *RefWriter) skip(c *cid.Cid) bool {
 		rw.seen = cid.NewSet()
 	}
 
-	has := rw.seen.Has(c)
+	has := rw.seen.Has(*c)
 	if !has {
-		rw.seen.Add(c)
+		rw.seen.Add(*c)
 	}
 	return has
 }
 
-// Write one edge
+// WriteEdge - Write one edge
 func (rw *RefWriter) WriteEdge(from, to *cid.Cid, linkname string) error {
 	if rw.Ctx != nil {
 		select {

@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -17,6 +17,7 @@ import (
 	"github.com/AtlantPlatform/atlant-go/proto"
 )
 
+// Object is object in atlant node
 type Object struct {
 	ObjectRef
 
@@ -24,6 +25,7 @@ type Object struct {
 	Body io.ReadCloser
 }
 
+// PlanetaryFileStore interface
 type PlanetaryFileStore interface {
 	NodeID() string
 	SignData(peerID string, data []byte) ([]byte, error)
@@ -51,7 +53,8 @@ type PlanetaryFileStore interface {
 	Close() error
 }
 
-func NewPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, error) {
+// NewPlanetaryFileStore creates new IPFS filestore
+func NewPlanetaryFileStore(prefix string, opts ...IpfsOpt) (PlanetaryFileStore, error) {
 	s, err := newIpfsStore(prefix, false, opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to open IPFS store node: %v", err)
@@ -60,7 +63,8 @@ func NewPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, 
 	return s, nil
 }
 
-func InitPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore, error) {
+// InitPlanetaryFileStore initializes new IPFS filestore
+func InitPlanetaryFileStore(prefix string, opts ...IpfsOpt) (PlanetaryFileStore, error) {
 	s, err := newIpfsStore(prefix, true, opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to init IPFS store node: %v", err)
@@ -69,6 +73,7 @@ func InitPlanetaryFileStore(prefix string, opts ...ipfsOpt) (PlanetaryFileStore,
 	return s, nil
 }
 
+// NewPrivateKey returns multiline buffer with swarm key
 func NewPrivateKey() ([]byte, error) {
 	r, err := newIpfsPrivateKey()
 	if err != nil {
@@ -77,6 +82,7 @@ func NewPrivateKey() ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
+// ObjectRef structure to keep meta information
 type ObjectRef struct {
 	ID   string
 	Path string
@@ -91,6 +97,7 @@ type ObjectRef struct {
 	meta    *proto.ObjectMeta
 }
 
+// SetMeta sets ObjectMeta with proper lock
 func (o *ObjectRef) SetMeta(m *proto.ObjectMeta) {
 	o.muxOnce.Do(func() {
 		o.metaMux = new(sync.RWMutex)
@@ -100,6 +107,7 @@ func (o *ObjectRef) SetMeta(m *proto.ObjectMeta) {
 	o.metaMux.Unlock()
 }
 
+// Meta gets ObjectMeta with proper read lock
 func (o *ObjectRef) Meta() *proto.ObjectMeta {
 	o.muxOnce.Do(func() {
 		o.metaMux = new(sync.RWMutex)
@@ -110,6 +118,7 @@ func (o *ObjectRef) Meta() *proto.ObjectMeta {
 	return m
 }
 
+// ToProto converts object reference to ObjectMeta
 func (o *ObjectRef) ToProto() (proto.ObjectMeta, error) {
 	meta := proto.AutoNewObjectMeta(capn.NewBuffer(nil))
 	if o == nil {
@@ -127,16 +136,19 @@ func (o *ObjectRef) ToProto() (proto.ObjectMeta, error) {
 	return meta, nil
 }
 
-func (o ObjectRef) PrevVersion() ObjectRef {
+// PrevVersion decreases version offset
+func (o *ObjectRef) PrevVersion() *ObjectRef {
 	o.VersionOffset--
 	return o
 }
 
-func (o ObjectRef) NextVersion() ObjectRef {
+// NextVersion increases version offset
+func (o *ObjectRef) NextVersion() *ObjectRef {
 	o.VersionOffset++
 	return o
 }
 
+// BandwidthStats - IPFS Bandwidth stats descriptor
 type BandwidthStats struct {
 	TotalIn  int64   `json:"total_in"`
 	TotalOut int64   `json:"total_out"`
@@ -144,12 +156,14 @@ type BandwidthStats struct {
 	RateOut  float64 `json:"rate_out"`
 }
 
+// DiskStats - IPFS Disk stats descriptor
 type DiskStats struct {
 	BytesAll  uint64 `json:"bytes_all"`
 	BytesUsed uint64 `json:"bytes_used"`
 	BytesFree uint64 `json:"bytes_free"`
 }
 
+// RepoStats - IPFS Repo stats descriptor
 type RepoStats struct {
 	NumObjects uint64 `json:"num_objects"`
 	RepoSize   uint64 `json:"repo_size"`
@@ -158,6 +172,7 @@ type RepoStats struct {
 	StorageMax uint64 `json:"storage_max"`
 }
 
+// BitswapStats - IPFS Bitswap descriptor
 type BitswapStats struct {
 	ProvideBufLen   int      `json:"provide_buf_len"`
 	WantlistLen     int      `json:"wantlist_len"`

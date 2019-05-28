@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+CURRDIR=${PWD##*/} 
+if [ "$CURRDIR" != "atlant-go" ]; then
+	echo "This script should be launched from the project folder"
+  exit 1
+fi
+
 # Get the version from the environment, or try to figure it out.
 if [ -z $VERSION ]; then
 	VERSION=$(awk -F\" '/Version =/ { print $2; exit }' < version/version.go)
@@ -26,9 +32,10 @@ XC_TARGETS="darwin/amd64,linux/amd64,linux/arm,linux/386,windows/386,windows/amd
 # ldflags: -s Omit the symbol table and debug information.
 #	         -w Omit the DWARF symbol table.
 echo "==> Building..."
+GO111MODULE=off
 xgo -ldflags="-s -w -X ${GIT_IMPORT}.GitCommit=${GIT_COMMIT}" \
 	-targets=${XC_TARGETS} -out "" -dest="build/pkg/" \
-	github.com/AtlantPlatform/atlant-go
+	./
 
 # Zip all the files.
 echo "==> Packaging..."

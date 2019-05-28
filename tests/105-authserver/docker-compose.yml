@@ -1,0 +1,8 @@
+version: '3'
+services:
+  auth:
+    build: auth
+    ports:
+      - "33700:33700"
+    env_file:
+      - ".env"

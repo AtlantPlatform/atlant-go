@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -29,6 +29,7 @@ import (
 	"github.com/AtlantPlatform/atlant-go/state"
 )
 
+// Record contains record descriptor
 type Record struct {
 	proto.Record
 
@@ -36,6 +37,7 @@ type Record struct {
 	Body   io.ReadCloser
 }
 
+// RecordCRUD interface for Create/Read/Update/Delete record
 type RecordCRUD interface {
 	CreateRecord(ctx context.Context, path string, body io.ReadCloser, opts ...CreateOptions) (*Record, error)
 	ReadRecord(ctx context.Context, path string, opts ...ReadOptions) (*Record, error)
@@ -43,23 +45,28 @@ type RecordCRUD interface {
 	DeleteRecord(ctx context.Context, path string) (*Record, error)
 }
 
+// CreateOptions user meta
 type CreateOptions struct {
 	UserMeta []byte
 	Size     int64
 }
 
+// UpdateOptions structure to contain user meta and size
 type UpdateOptions struct {
 	UserMeta []byte
 	Size     int64
 }
 
+// ReadOptions structure - version
 type ReadOptions struct {
 	Version   string
 	NoContent bool
 }
 
+// RecordWalkFunc handler to walk through path
 type RecordWalkFunc func(path string, r *Record) error
 
+// PlanetaryRecordStore interface to handle Record storage, see recordStore for implementation
 type PlanetaryRecordStore interface {
 	RecordCRUD
 
@@ -135,6 +142,14 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 		log.Warningf("failed to connect to pubsub: %v", err)
 		return r, nil
 	}
+	pubsubConfig, err := sub.Config()
+	if err != nil {
+		log.Warningf("failed to find pubsub config: %v", err)
+	}
+	if !pubsubConfig.StrictSignatureVerification {
+		log.Fatalln("Pubsub Config: StrictSignatureVerification is disabled. Please check fs/config")
+	}
+
 	topics := []string{
 		EventRecordUpdate.String(),
 		EventBeatInfo.String(),
@@ -154,13 +169,20 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 			return nil
 		case EventRecordUpdate:
 			if !isPublishAllowed(m.From) {
-				log.Debugln("ignoring EventRecordUpdate from unauthorized node")
+				log.WithField("from", m.From).Debugln("Ignoring EventRecordUpdate, unauthorized node")
 				return nil
 			}
-			log.Debugln("received", event.Type.String(), "from", m.From)
+			log.WithFields(log.Fields{
+				"from": m.From,
+				"type": event.Type.String(),
+			}).Debugln("EventRecordUpdate Received")
+
 			seg, err := capn.ReadFromPackedStream(bytes.NewReader(m.Data), nil)
 			if err != nil {
-				log.Warningln("failed to decode record announce data:", err)
+				log.WithFields(log.Fields{
+					"from": m.From,
+					"type": event.Type.String(),
+				}).Warningln("Failed to decode record announce data:", err)
 				return nil
 			}
 			event.Announce = proto.ReadRootAnnounce(seg)
@@ -168,13 +190,19 @@ func NewPlanetaryRecordStore(nodeID string, fileStore fs.PlanetaryFileStore, sta
 		case EventBeatTick, EventBeatInfo:
 			seg, err := capn.ReadFromPackedStream(bytes.NewReader(m.Data), nil)
 			if err != nil {
-				log.Warningln("failed to decode beat announce data:", err)
+				log.WithFields(log.Fields{
+					"from": m.From,
+					"type": event.Type.String(),
+				}).Warningln("Failed to decode beat announce data:", err)
 				return nil
 			}
 			event.Announce = proto.ReadRootAnnounce(seg)
 			r.ReceiveEventAnnounce(event)
 		default:
-			log.Warningln("event not handled: %s", event.Type.String())
+			log.WithFields(log.Fields{
+				"from": m.From,
+				"type": event.Type.String(),
+			}).Warningf("Event not handled")
 			return nil
 		}
 		return nil
@@ -222,12 +250,14 @@ func (r *recordStore) Close() error {
 	return nil
 }
 
+// ErrNotSynced to be thrown when not synced
 var ErrNotSynced = errors.New("not synced")
 
 func (r *recordStore) Sync(timeout time.Duration) error {
 	var syncCandidates []string
 	entries := authcenter.Default.Entries()
 	for _, e := range entries {
+		log.WithField("key", e.Key).Debug("Sync Candidate")
 		if e.Key == r.nodeID {
 			continue
 		} else if e.HasPermissions(authcenter.RecordSyncPermission) {
@@ -238,9 +268,9 @@ func (r *recordStore) Sync(timeout time.Duration) error {
 		log.Warningln("no sync candidates found")
 		r.state = storeActiveState
 		return nil
-	} else {
-		log.Debugln("found sync candidates:", len(syncCandidates))
 	}
+	log.Debugf("found %d sync candidates", len(syncCandidates))
+
 	ctx, cancelFn := context.WithTimeout(context.Background(), timeout)
 	defer cancelFn()
 	alive := r.aliveNodes(ctx, syncCandidates)
@@ -256,9 +286,8 @@ func (r *recordStore) Sync(timeout time.Duration) error {
 			log.Warningln("no alive sync candidates found")
 			r.state = storeActiveState
 			return nil
-		} else {
-			log.Debugln("found alive sync candidates:", len(alive))
 		}
+		log.Debugln("found alive sync candidates:", len(alive))
 	} else {
 		log.Debugln("found alive sync candidates:", len(alive))
 	}
@@ -338,7 +367,6 @@ func (r *recordStore) startSync(ctx context.Context, rC <-chan *proto.Record) er
 			}
 		}
 	}
-	return nil
 }
 
 func validateRecord(record *proto.Record) error {
@@ -350,6 +378,9 @@ func validateRecord(record *proto.Record) error {
 	if err != nil {
 		return fmt.Errorf("error checking current version signature: %v", err)
 	} else if !ok {
+		// fmt.Println("1. Node ID=", ann.NodeID())
+		// fmt.Println("2. Signature=", ann.Signature())
+		// fmt.Println("3. Envelope=", hex.EncodeToString(ann.Envelope()))
 		return errors.New("incorrect signature for current version announce")
 	}
 	list := record.Previous()
@@ -443,10 +474,12 @@ func (r *recordStore) SendBeats(ctx context.Context, tickDur, infoDur time.Durat
 	}
 }
 
+// BeatReport should be the array of Sessions
 type BeatReport struct {
 	Sessions []*BeatSessionReport `json:"sessions"`
 }
 
+// BeatSessionReport should be session descriptor
 type BeatSessionReport struct {
 	SessionID    string `json:"session_id"`
 	EthereumAddr string `json:"eth_addr"`
@@ -536,7 +569,12 @@ func (r *recordStore) emitEvent(ev *EventAnnounce, timeout time.Duration) error 
 
 	buf := new(bytes.Buffer)
 	if _, err := ev.Announce.Segment.WriteToPacked(buf); err != nil {
-		err = fmt.Errorf("failed to pack announce: %v", err)
+
+		log.WithFields(log.Fields{
+			"type":   ev.Type.String(),
+			"nodeID": r.nodeID,
+		}).Warningf("Failed to pack announce: %v", err)
+		err = fmt.Errorf("Failed to pack announce: %v", err)
 		return err
 	}
 
@@ -545,13 +583,23 @@ func (r *recordStore) emitEvent(ev *EventAnnounce, timeout time.Duration) error 
 		defer wg.Done()
 		pub, err := r.fs.PubSub()
 		if err != nil {
-			log.Warningf("failed to use pubsub: %v", err)
+			log.WithFields(log.Fields{
+				"type":   ev.Type.String(),
+				"nodeID": r.nodeID,
+			}).Warningf("Failed to use pubsub: %v", err)
 			return
 		}
 		// topic := EventToTopic(r.nodeID, ev.Type)
-		log.Debugf("emitting %s event to pubsub", ev.Type)
+		log.WithFields(log.Fields{
+			"type":   ev.Type.String(),
+			"nodeID": r.nodeID,
+		}).Debugf("Emitting event to pubsub")
+
 		if err = pub.Publish(ev.Type.String(), buf.Bytes()); err != nil {
-			log.Warningf("pubsub publish failed: %v", err)
+			log.WithFields(log.Fields{
+				"type":   ev.Type.String(),
+				"nodeID": r.nodeID,
+			}).Warningf("Pubsub publish failed: %v", err)
 		}
 	}()
 	return nil
@@ -620,7 +668,7 @@ func (r *recordStore) handleEvent(ev *EventAnnounce, timeout time.Duration) erro
 			log.WithFields(updateFields).Warningln("file not found on IPFS but announced")
 			return nil
 		} else if err != nil {
-			log.WithFields(updateFields).Errorln("failed to retrieve object: %v", err)
+			log.WithFields(updateFields).Errorf("failed to retrieve object: %v", err)
 			return nil
 		}
 		k := state.NewKey(state.BucketRecords, []byte(ref.ID))
@@ -647,7 +695,7 @@ func (r *recordStore) handleEvent(ev *EventAnnounce, timeout time.Duration) erro
 			log.Warningf("failed to update record: %v", err)
 		}
 		if err := r.fs.PinNewest(*ref, 3); err != nil {
-			log.WithFields(updateFields).Errorln("failed to pin object: %v", err)
+			log.WithFields(updateFields).Errorf("failed to pin object: %v", err)
 			return nil
 		}
 	case EventBeatTick:
@@ -809,8 +857,11 @@ func (r *recordStore) EmitEventAnnounce(event *EventAnnounce) {
 }
 
 var (
-	ErrNotAuthorized  = errors.New("node is not authorized to create records")
-	ErrRecordExists   = errors.New("record exists")
+	// ErrNotAuthorized to be thrown when node is not authorized
+	ErrNotAuthorized = errors.New("node is not authorized to create records")
+	// ErrRecordExists to be thrown when record already exists
+	ErrRecordExists = errors.New("record exists")
+	// ErrRecordNotFound to be thrown when record was not found
 	ErrRecordNotFound = errors.New("record not found")
 )
 
@@ -845,9 +896,23 @@ func (r *recordStore) CreateRecord(ctx context.Context, path string, body io.Rea
 			Path: path,
 			Size: size,
 		}, userMeta, body)
+
 		if err != nil {
+			log.WithFields(log.Fields{
+				"id":       id,
+				"path":     path,
+				"size":     size,
+				"userMeta": string(userMeta),
+			}).Errorf("IPFS error of PutObject: (CreateRecord) %v", err)
 			return nil, err
 		}
+		log.WithFields(log.Fields{
+			"id":       id,
+			"path":     path,
+			"size":     size,
+			"userMeta": string(userMeta),
+		}).Info("IPFS PutObject on CreateRecord was successfull")
+
 		ann = r.newRecordUpdateAnnounce(id, ref.Version, "")
 		rec.Record = proto.AutoNewRecord(capn.NewBuffer(nil))
 		rec.Record.SetId(ref.ID)
@@ -932,8 +997,21 @@ func (r *recordStore) UpdateRecord(ctx context.Context, path string, body io.Rea
 			Size:            size,
 		}, userMeta, body)
 		if err != nil {
+			log.WithFields(log.Fields{
+				"id":       id,
+				"path":     path,
+				"size":     size,
+				"userMeta": string(userMeta),
+			}).Errorf("IPFS error of PutObject (UpdateRecord): %v", err)
 			return nil, err
 		}
+		log.WithFields(log.Fields{
+			"id":       id,
+			"path":     path,
+			"size":     size,
+			"userMeta": string(userMeta),
+		}).Info("IPFS PutObject on UpdateRecord was successfull")
+
 		ann = r.newRecordUpdateAnnounce(id, ref.Version, v.Current().Version())
 		v.SetPrevious(proto.AppendRecordVersion(v.Previous(), v.Current()))
 		ver := proto.AutoNewRecordVersion(capn.NewBuffer(nil))
@@ -1149,6 +1227,7 @@ func (r *recordStore) ReadRecord(ctx context.Context, path string, opts ...ReadO
 	return rec, nil
 }
 
+// ErrWalkStop should be thrown to stop records traversing
 var ErrWalkStop = errors.New("walk stop")
 
 func (r *recordStore) WalkRecords(ctx context.Context, root string, fn RecordWalkFunc) error {
@@ -1204,6 +1283,7 @@ func (r *recordStore) BadgerStats() *BadgerStats {
 	}
 }
 
+// BadgerStats contains stats of badger
 type BadgerStats struct {
 	NumReads        int64           `json:"badger_disk_reads_total"`
 	NumWrites       int64           `json:"badger_disk_writes_total"`

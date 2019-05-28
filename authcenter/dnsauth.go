@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -14,16 +14,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// DefaultMainDomains is a list of domains for production network
 var DefaultMainDomains = []string{
 	"node-main.atlant-dev.io",
 	"node-main.atlant.io",
 }
 
+// DefaultTestDomains is a list of domains for test network
 var DefaultTestDomains = []string{
 	"node-test.atlant-dev.io",
 	"node-test.atlant.io",
 }
 
+// NewDNSAuth initializes authcenter with domains, which DNS will be requested
 func NewDNSAuth(domains []string, dur time.Duration) Auth {
 	d := &dnsAuth{
 		mux:     new(sync.RWMutex),
@@ -54,19 +57,24 @@ func (d *dnsAuth) refresh() {
 			if _, ok := seen[domain]; ok {
 				return
 			}
+			log.WithField("domain", domain).Debugln("DnsAuth: Looking into TXT records")
 			labels, err := net.LookupTXT(domain)
 			if err != nil {
 				if strings.Contains(err.Error(), "no such host") {
+					log.WithField("domain", domain).Infoln("No such host")
 					return
 				}
-				log.WithField("domain", domain).Infoln("failed to fetch TXT records:", err)
+				log.WithField("domain", domain).Infoln("Failed to fetch TXT records:", err)
 				return
 			}
 			seen[domain] = struct{}{}
 			for _, label := range labels {
 				key, tags, ok := parseLabel(label)
 				if !ok {
-					log.WithField("domain", domain).Infoln("malformed label on auth domain:", label)
+					log.WithFields(log.Fields{
+						"domain": domain,
+						"label":  label,
+					}).Infoln("Malformed label on auth domain")
 					continue
 				}
 				if key == "promote" {
@@ -88,7 +96,10 @@ func (d *dnsAuth) refresh() {
 					case RecordWritePermission, RecordSyncPermission:
 						entry.Permissions = append(entry.Permissions, p)
 					default:
-						log.WithField("domain", domain).Infoln("unknown permission tag:", tag)
+						log.WithFields(log.Fields{
+							"domain": domain,
+							"tag":    tag,
+						}).Infoln("Unknown permission tag (can be fixed by using 8.8.8.8 in /etc/resolv.conf)")
 					}
 				}
 				sort.Sort(Permissions(entry.Permissions))
@@ -122,7 +133,7 @@ func (d *dnsAuth) refresh() {
 			return
 		case <-t.C:
 			if err := sync(); err != nil {
-				log.Warningln("DNS auth sync failed: %v", err)
+				log.Warningf("DNS auth sync failed: %v", err)
 				t.Reset(time.Minute)
 				continue
 			}
@@ -177,6 +188,10 @@ func (d *dnsAuth) AllPermissions(key string) []Permission {
 
 func (d *dnsAuth) HasPermissions(key string, perms ...Permission) bool {
 	d.mux.RLock()
+	log.WithFields(log.Fields{
+		"key":   key,
+		"perms": perms,
+	}).Debugln("dnsAuth: check permissions")
 	for _, list := range d.entries {
 		for _, e := range list {
 			if e.Key != key {

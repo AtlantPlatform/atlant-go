@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -8,13 +8,19 @@ import (
 	"github.com/AtlantPlatform/atlant-go/proto"
 )
 
+// EventType stores the code for event announcement type
 type EventType int
 
 const (
-	EventUnknown      EventType = EventType(proto.ANNOUNCETYPE_UNKNOWN)
-	EventBeatTick     EventType = EventType(proto.ANNOUNCETYPE_BEATTICK)
-	EventBeatInfo     EventType = EventType(proto.ANNOUNCETYPE_BEATINFO)
+	// EventUnknown - code for unknown announcement (0)
+	EventUnknown EventType = EventType(proto.ANNOUNCETYPE_UNKNOWN)
+	// EventBeatTick - code for beat tick announcement (1)
+	EventBeatTick EventType = EventType(proto.ANNOUNCETYPE_BEATTICK)
+	// EventBeatInfo - code for beat information announcement (2)
+	EventBeatInfo EventType = EventType(proto.ANNOUNCETYPE_BEATINFO)
+	// EventRecordUpdate - code for announcement of record update (3)
 	EventRecordUpdate EventType = EventType(proto.ANNOUNCETYPE_RECORDUPDATE)
+	// EventStopAnnounce - code for stopping announcements
 	EventStopAnnounce EventType = 999
 )
 
@@ -33,6 +39,7 @@ func (e EventType) String() string {
 	}
 }
 
+// EventFromTopic returns type of event from string
 func EventFromTopic(topic string) EventType {
 	switch topic {
 	case EventBeatTick.String():
@@ -46,6 +53,7 @@ func EventFromTopic(topic string) EventType {
 	}
 }
 
+// EventAnnounce is a storage for serializable event announcement
 type EventAnnounce struct {
 	Type     EventType      `json:"type"`
 	Announce proto.Announce `json:"announce"`

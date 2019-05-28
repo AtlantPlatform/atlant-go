@@ -1,0 +1,48 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/AtlantPlatform/atlant-go
+    environment:
+      GO111MODULE: "off"
+    steps:
+      - checkout
+      # Normally, this step would be in a custom primary image;
+      - run: go get -u github.com/ethereum/go-ethereum
+      - run:
+          name: Build atlant-node binary
+          command: go build
+      - run:
+          name: Run unit tests
+          command: go test -v ./...
+  test:
+    machine:
+      docker_layer_caching: true
+      enabled: true
+    steps:
+      - checkout
+      - run:
+          name: Build docker image 
+          command: docker build -t atlantplatform/atlant-node .
+      - run:
+          name: Test Auth Server
+          command: ./tests/105-authserver/run.sh
+      - run:
+          name: Test Single Node CRUD
+          command: ./tests/109-single-node/run.sh
+      - run:
+          name: Test Cluster of 3 Nodes
+          command: ./tests/110-cluster-of-3/run.sh
+      - run:
+          name: Testnet Connection
+          command: ./tests/200-testnet-connect/run.sh
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test

@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -10,8 +10,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
+	"strconv"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/atlant-go/client"
 	cli "github.com/jawher/mow.cli"
@@ -22,16 +25,42 @@ var app = cli.App("atlant-lite", getBanner()+"\nA lightweight ATLANT node client
 var nodeAddr = app.StringOpt("A addr", "testnet", "Full node address (ex. localhost:33780)")
 
 func init() {
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	// log.SetFlags(log.Lshortfile | log.LstdFlags)
+}
+
+var defaultLogLevel = "4"
+
+// logLevel is set in main func
+var logLevel *string
+
+func toNatural(s string, defaults uint64) int {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		// defaults in case of incorrect or empty "" value
+		return int(defaults)
+	} else if i < 0 {
+		// not defaults, because nobody expects +100 while specifying -100
+		return 0
+	}
+	return int(i)
 }
 
 func main() {
+
+	logLevel = app.String(cli.StringOpt{
+		Name:   "l log-level",
+		Desc:   "Logging verbosity (0 = minimum, 1...4, 5 = debug).",
+		EnvVar: "ANC_LOG_LEVEL",
+		Value:  defaultLogLevel,
+	})
+	log.SetLevel(log.Level(toNatural(*logLevel, 4)))
+
 	app.Command("ping", "Ping node and get its ID", cmdPing)
 	app.Command("version", "Get node version", cmdVersion)
 	app.Command("put", "Put an object into the store", cmdPutObject)
 	app.Command("get", "Get object contents from the store", cmdGetContents)
-	app.Command("meta", "Get object meta data from the store", cmdDeleteObject)
-	app.Command("delete", "Delete object from a store", cmdPing)
+	app.Command("meta", "Get object meta data from the store", cmdGetMeta)
+	app.Command("delete", "Delete object from a store by its ID", cmdDeleteObject)
 	app.Command("versions", "List all object versions", cmdListVersions)
 	app.Command("ls", "List all objects and sub-directories in a prefix", cmdListObjects)
 	if err := app.Run(os.Args); err != nil {
@@ -127,13 +156,16 @@ func cmdDeleteObject(c *cli.Cmd) {
 	id := c.StringArg("ID", "", "Object ID in the store")
 	c.Spec = "ID"
 	c.Action = func() {
+		if strings.Contains(*id, "/") {
+			log.Fatalln("[ERR]", "ID can't contain slashes. Are you trying to use path instead?")
+		}
 		cli := getClient()
 		ctx := context.Background()
-		meta, err := cli.DeleteObject(ctx, *id)
+		err := cli.DeleteObject(ctx, *id)
 		if err != nil {
 			log.Fatalln("[ERR]", err)
 		}
-		fmt.Println(jsonPrint(meta))
+		fmt.Println("Deleted")
 	}
 }
 
@@ -167,7 +199,7 @@ func cmdListObjects(c *cli.Cmd) {
 	}
 }
 
-func getClient() client.NodeClient {
+func getClient() client.Client {
 	var urlPrefix string
 	switch *nodeAddr {
 	case "testnet", "testnet1":
@@ -181,7 +213,7 @@ func getClient() client.NodeClient {
 	default:
 		urlPrefix = "http://" + *nodeAddr
 	}
-	return client.NewNodeClient(urlPrefix)
+	return client.New(urlPrefix)
 }
 
 func getBanner() string {

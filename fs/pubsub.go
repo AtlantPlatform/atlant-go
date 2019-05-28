@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -10,46 +10,48 @@ import (
 	"io"
 	"sync"
 
+	config "github.com/ipfs/go-ipfs-config"
 	log "github.com/sirupsen/logrus"
 	"github.com/xlab/catcher"
 
-	"github.com/AtlantPlatform/go-ipfs/core"
-	cid "github.com/AtlantPlatform/go-ipfs/go-cid"
-	floodsub "github.com/AtlantPlatform/go-ipfs/go-libp2p-floodsub"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/core"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 var (
+	// ErrNoPubSub is thrown if pubsub is not initialized
 	ErrNoPubSub = errors.New("IPFS pubsub is not initialized")
-	ErrSubStop  = errors.New("stop subscription")
+	// ErrSubStop is thrown if subscription is stopped
+	ErrSubStop = errors.New("stop subscription")
 )
 
+// PlanetaryPubSub interface for publish/subscribe
 type PlanetaryPubSub interface {
 	Publish(topic string, data []byte) error
 	Subscribe(fn MessagePeekFunc, topics ...string) error
 	Close() error
+	Config() (*config.PubsubConfig, error)
 }
 
 type ipfsPubSub struct {
-	node  *core.IpfsNode
-	flood *floodsub.PubSub
-
-	subs    []*floodsub.Subscription
+	node    *core.IpfsNode
+	subs    []*pubsub.Subscription
 	subsMux *sync.RWMutex
 }
 
 func newIpfsPubSub(node *core.IpfsNode) *ipfsPubSub {
 	return &ipfsPubSub{
 		node:    node,
-		flood:   node.Floodsub,
 		subsMux: new(sync.RWMutex),
 	}
 }
 
 func (p *ipfsPubSub) Publish(topic string, data []byte) error {
-	if p.node == nil || p.flood == nil {
+	if p.node == nil || p.node.PubSub == nil {
 		return ErrNoPubSub
 	}
-	return p.flood.Publish(topic, data)
+	return p.node.PubSub.Publish(topic, data)
 }
 
 // TODO(max):
@@ -58,8 +60,10 @@ func (p *ipfsPubSub) Publish(topic string, data []byte) error {
 // WithValidatorTimeout
 // etc
 
+// MessagePeekFunc function for peeking messages
 type MessagePeekFunc func(m *Message) error
 
+// Message structure
 type Message struct {
 	From     string   `json:"from,omitempty"`
 	Data     []byte   `json:"data,omitempty"`
@@ -67,19 +71,27 @@ type Message struct {
 	TopicIDs []string `json:"topicIDs,omitempty"`
 }
 
+func (p *ipfsPubSub) Config() (*config.PubsubConfig, error) {
+	repoConfig, err := p.node.Repo.Config()
+	if err == nil {
+		return &repoConfig.Pubsub, nil
+	}
+	return nil, err
+}
+
 func (p *ipfsPubSub) Subscribe(fn MessagePeekFunc, topics ...string) error {
-	if p.node == nil || p.flood == nil {
+	if p.node == nil || p.node.PubSub == nil {
 		return ErrNoPubSub
 	}
 	for _, topic := range topics {
-		sub, err := p.flood.Subscribe(topic)
+		sub, err := p.node.PubSub.Subscribe(topic)
 		if err != nil {
 			return err
 		}
 		p.subsMux.Lock()
 		p.subs = append(p.subs, sub)
 		p.subsMux.Unlock()
-		go func(sub *floodsub.Subscription) {
+		go func(sub *pubsub.Subscription) {
 			defer catcher.Catch(catcher.RecvLog(true))
 			for {
 				msg, err := sub.Next(context.Background())

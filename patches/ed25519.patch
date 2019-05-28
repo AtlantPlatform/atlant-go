@@ -1,0 +1,233 @@
+diff --git a/vendor/github.com/ipfs/go-ipfs-config/init.go b/vendor/github.com/ipfs/go-ipfs-config/init.go
+index 0697cc4..a39f95a 100644
+--- a/vendor/github.com/ipfs/go-ipfs-config/init.go
++++ b/vendor/github.com/ipfs/go-ipfs-config/init.go
+@@ -156,8 +156,8 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
+ 		return ident, errors.New("bitsize less than 1024 is considered unsafe")
+ 	}
+ 
+-	fmt.Fprintf(out, "generating %v-bit RSA keypair...", nbits)
+-	sk, pk, err := ci.GenerateKeyPair(ci.RSA, nbits)
++	fmt.Fprintf(out, "generating an Ed25519 keypair...")
++	sk, pk, err := ci.GenerateKeyPair(ci.Ed25519, 0)
+ 	if err != nil {
+ 		return ident, err
+ 	}
+@@ -171,7 +171,7 @@ func identityConfig(out io.Writer, nbits int) (Identity, error) {
+ 	}
+ 	ident.PrivKey = base64.StdEncoding.EncodeToString(skbytes)
+ 
+-	id, err := peer.IDFromPublicKey(pk)
++	id, err := peer.IDFromEd25519PublicKey(pk)
+ 	if err != nil {
+ 		return ident, err
+ 	}
+diff --git a/vendor/github.com/ipfs/go-ipfs/core/core.go b/vendor/github.com/ipfs/go-ipfs/core/core.go
+index b2b27b3..55384cc 100644
+--- a/vendor/github.com/ipfs/go-ipfs/core/core.go
++++ b/vendor/github.com/ipfs/go-ipfs/core/core.go
+@@ -265,7 +265,6 @@ func (n *IpfsNode) startOnlineServices(ctx context.Context, routingOption Routin
+ 	if cfg.Swarm.EnableAutoRelay {
+ 		libp2pOpts = append(libp2pOpts, libp2p.EnableAutoRelay())
+ 	}
+-
+ 	peerhost, err := hostOption(ctx, n.Identity, n.Peerstore, libp2pOpts...)
+ 
+ 	if err != nil {
+@@ -877,7 +876,7 @@ func loadPrivateKey(cfg *config.Identity, id peer.ID) (ic.PrivKey, error) {
+ 		return nil, err
+ 	}
+ 
+-	id2, err := peer.IDFromPrivateKey(sk)
++	id2, err := peer.IDFromEd25519PublicKey(sk.GetPublic())
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/vendor/github.com/libp2p/go-libp2p-kad-dht/records.go b/vendor/github.com/libp2p/go-libp2p-kad-dht/records.go
+index 5e508db..087015d 100644
+--- a/vendor/github.com/libp2p/go-libp2p-kad-dht/records.go
++++ b/vendor/github.com/libp2p/go-libp2p-kad-dht/records.go
+@@ -122,7 +122,7 @@ func (dht *IpfsDHT) getPublicKeyFromNode(ctx context.Context, p peer.ID) (ci.Pub
+ 	}
+ 
+ 	// Make sure the public key matches the peer ID
+-	id, err := peer.IDFromPublicKey(pubk)
++	id, err := peer.IDFromEd25519PublicKey(pubk)
+ 	if err != nil {
+ 		logger.Errorf("Could not extract peer id from public key for %v", p)
+ 		return nil, err
+diff --git a/vendor/github.com/libp2p/go-libp2p-peer/peer.go b/vendor/github.com/libp2p/go-libp2p-peer/peer.go
+index 6189d1d..3cda2e9 100644
+--- a/vendor/github.com/libp2p/go-libp2p-peer/peer.go
++++ b/vendor/github.com/libp2p/go-libp2p-peer/peer.go
+@@ -2,6 +2,7 @@
+ package peer
+ 
+ import (
++	"encoding/binary"
+ 	"encoding/hex"
+ 	"errors"
+ 	"fmt"
+@@ -11,6 +12,16 @@ import (
+ 	mh "github.com/multiformats/go-multihash"
+ )
+ 
++// Code is type from deprecated go-multicodec-packed
++type Code uint64
++
++const mcEd25519Pub = Code(0xed)
++
++func mcSplitPrefix(data []byte) (Code, []byte) {
++	c, n := binary.Uvarint(data)
++	return Code(c), data[n:]
++}
++
+ var (
+ 	// ErrEmptyPeerID is an error for empty peer ID.
+ 	ErrEmptyPeerID = errors.New("empty peer ID")
+@@ -69,13 +80,67 @@ func (id ID) MatchesPrivateKey(sk ic.PrivKey) bool {
+ 
+ // MatchesPublicKey tests whether this ID was derived from pk
+ func (id ID) MatchesPublicKey(pk ic.PubKey) bool {
+-	oid, err := IDFromPublicKey(pk)
++	oid, err := IDFromEd25519PublicKey(pk)
+ 	if err != nil {
+ 		return false
+ 	}
+ 	return oid == id
+ }
+ 
++// ErrMultihashDecode - error of decoding multihash
++var ErrMultihashDecode = errors.New("unable to decode multihash")
++
++// ErrMultihashCodec - error of multihash coded
++var ErrMultihashCodec = errors.New("unexpected multihash codec")
++
++// ErrMultihashLength - error of multihash length
++var ErrMultihashLength = errors.New("unexpected multihash length")
++
++// ErrCodePrefix - error of Ed25519 prefix code
++var ErrCodePrefix = errors.New("unexpected code prefix")
++
++// ExtractEd25519PublicKey attempts to extract the public key from an ID
++func (id ID) ExtractEd25519PublicKey() (ic.PubKey, error) {
++	// ed25519 pubkey identity format
++	// <identity mc><length (2 + 32 = 34)><ed25519-pub mc><ed25519 pubkey>
++	// <0x00       ><0x22                ><0xed01        ><ed25519 pubkey>
++
++	var nilPubKey ic.PubKey
++
++	// Decode multihash
++	decoded, err := mh.Decode([]byte(id))
++	if err != nil {
++		return nilPubKey, ErrMultihashDecode
++	}
++
++	// Check ID multihash codec
++	if decoded.Code != mh.ID {
++		return nilPubKey, ErrMultihashCodec
++	}
++
++	// Check multihash length
++	if decoded.Length != 2+32 {
++		return nilPubKey, ErrMultihashLength
++	}
++
++	// Split prefix
++	code, pubKeyBytes := mcSplitPrefix(decoded.Digest)
++
++	// Check ed25519 code
++	if code != mcEd25519Pub {
++		return nilPubKey, ErrCodePrefix
++	}
++
++	// Unmarshall public key
++	pubKey, err := ic.UnmarshalEd25519PublicKey(pubKeyBytes)
++	if err != nil {
++		// Should never occur because of the check decoded.Length != 2+32
++		return nilPubKey, fmt.Errorf("Unexpected error unmarshalling Ed25519 public key")
++	}
++
++	return pubKey, nil
++}
++
+ // ExtractPublicKey attempts to extract the public key from an ID
+ //
+ // This method returns ErrNoPublicKey if the peer ID looks valid but it can't extract
+@@ -164,9 +229,27 @@ func IDFromPublicKey(pk ic.PubKey) (ID, error) {
+ 	return ID(hash), nil
+ }
+ 
++// IDFromEd25519PublicKey returns the Peer ID corresponding to Id25519 pk
++func IDFromEd25519PublicKey(pk ic.PubKey) (ID, error) {
++	b, err := pk.Bytes()
++	if err != nil {
++		return "", err
++	}
++
++	// Build the ed25519 public key multi-codec
++	Ed25519PubMultiCodec := make([]byte, 2)
++	binary.PutUvarint(Ed25519PubMultiCodec, uint64(mcEd25519Pub))
++
++	hash, err := mh.Sum(append(Ed25519PubMultiCodec, b[len(b)-32:]...), mh.ID, 34)
++	if err != nil {
++		return "", err
++	}
++	return ID(hash), nil
++}
++
+ // IDFromPrivateKey returns the Peer ID corresponding to sk
+ func IDFromPrivateKey(sk ic.PrivKey) (ID, error) {
+-	return IDFromPublicKey(sk.GetPublic())
++	return IDFromEd25519PublicKey(sk.GetPublic())
+ }
+ 
+ // IDSlice for sorting peers
+diff --git a/vendor/github.com/libp2p/go-libp2p-secio/protocol.go b/vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+index 4e54d87..aa5edd1 100644
+--- a/vendor/github.com/libp2p/go-libp2p-secio/protocol.go
++++ b/vendor/github.com/libp2p/go-libp2p-secio/protocol.go
+@@ -194,7 +194,7 @@ func (s *secureSession) runHandshakeSync() error {
+ 	}
+ 
+ 	// get peer id
+-	actualRemotePeer, err := peer.IDFromPublicKey(s.remote.permanentPubKey)
++	actualRemotePeer, err := peer.IDFromEd25519PublicKey(s.remote.permanentPubKey)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/vendor/github.com/libp2p/go-libp2p/config/config.go b/vendor/github.com/libp2p/go-libp2p/config/config.go
+index 4c93421..6ab0c5e 100644
+--- a/vendor/github.com/libp2p/go-libp2p/config/config.go
++++ b/vendor/github.com/libp2p/go-libp2p/config/config.go
+@@ -89,7 +89,7 @@ func (cfg *Config) NewNode(ctx context.Context) (host.Host, error) {
+ 	}
+ 
+ 	// Obtain Peer ID from public key
+-	pid, err := peer.IDFromPublicKey(cfg.PeerKey.GetPublic())
++	pid, err := peer.IDFromEd25519PublicKey(cfg.PeerKey.GetPublic())
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/vendor/github.com/libp2p/go-libp2p/p2p/protocol/identify/id.go b/vendor/github.com/libp2p/go-libp2p/p2p/protocol/identify/id.go
+index 2285ae3..62e8001 100644
+--- a/vendor/github.com/libp2p/go-libp2p/p2p/protocol/identify/id.go
++++ b/vendor/github.com/libp2p/go-libp2p/p2p/protocol/identify/id.go
+@@ -280,7 +280,7 @@ func (ids *IDService) consumeReceivedPubKey(c inet.Conn, kb []byte) {
+ 	}
+ 
+ 	// verify key matches peer.ID
+-	np, err := peer.IDFromPublicKey(newKey)
++	np, err := peer.IDFromEd25519PublicKey(newKey)
+ 	if err != nil {
+ 		log.Debugf("%s cannot get peer.ID from key of remote peer: %s, %s", lp, rp, err)
+ 		return
+@@ -324,7 +324,7 @@ func (ids *IDService) consumeReceivedPubKey(c inet.Conn, kb []byte) {
+ 	log.Errorf("%s identify got a different key for: %s", lp, rp)
+ 
+ 	// okay... does ours NOT match the remote peer.ID?
+-	cp, err := peer.IDFromPublicKey(currKey)
++	cp, err := peer.IDFromEd25519PublicKey(currKey)
+ 	if err != nil {
+ 		log.Errorf("%s cannot get peer.ID from local key of remote peer: %s, %s", lp, rp, err)
+ 		return

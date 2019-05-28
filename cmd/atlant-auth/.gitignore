@@ -1,0 +1,9 @@
+vendor/
+*.exe
+*.exe~
+
+.idea/
+.DS_Store
+build/
+
+/atlant-auth

@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -88,18 +88,18 @@ var (
 		EnvVar: "AN_WEB_LISTEN_ADDR",
 		Value:  "0.0.0.0:33780",
 	})
-	clusterEnabled = app.String(cli.StringOpt{
-		Name:   "cluster-enabled",
-		Desc:   "Enable cluster discovery (experimental).",
-		EnvVar: "AN_CLUSTER_ENABLED",
-		Value:  "false",
-	})
-	clusterName = app.String(cli.StringOpt{
-		Name:   "C cluster-name",
-		Desc:   "Specifies cluster name.",
-		EnvVar: "AN_CLUSTER_NAME",
-		Value:  "",
-	})
+	// clusterEnabled = app.String(cli.StringOpt{
+	// 	Name:   "cluster-enabled",
+	// 	Desc:   "Enable cluster discovery (experimental).",
+	// 	EnvVar: "AN_CLUSTER_ENABLED",
+	// 	Value:  "false",
+	// })
+	// clusterName = app.String(cli.StringOpt{
+	// 	Name:   "C cluster-name",
+	// 	Desc:   "Specifies cluster name.",
+	// 	EnvVar: "AN_CLUSTER_NAME",
+	// 	Value:  "",
+	// })
 	fsNetworkProfile = app.String(cli.StringOpt{
 		Name:   "N fs-network-profile",
 		Desc:   "Sets IPFS network profile. Available: default, server, no-modify.",
@@ -123,6 +123,13 @@ var (
 		Name:      "testnet-auth-domains",
 		Desc:      "Specify additional DNS authority domains for a testnet environment.",
 		EnvVar:    "AN_TESTNET_DOMAINS",
+		Value:     nil,
+		HideValue: true,
+	})
+	envTestnetUrls = app.Strings(cli.StringsOpt{
+		Name:      "testnet-auth-urls",
+		Desc:      "Specify additional authority HTTP endpoints for a testnet environment.",
+		EnvVar:    "AN_TESTNET_URLS",
 		Value:     nil,
 		HideValue: true,
 	})

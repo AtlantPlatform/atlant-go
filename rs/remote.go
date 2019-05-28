@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -102,7 +102,6 @@ func (r *recordStore) getNodeRecords(ctx context.Context, nodeID string, rC chan
 		r := proto.ReadRootRecord(seg)
 		rC <- &r
 	}
-	return nil
 }
 
 func (r *recordStore) collectRecords(ctx context.Context, peers []string, rC chan<- *proto.Record) {
