@@ -1,28 +1,27 @@
-## ATLANT Node
+## Atlant Node [![CircleCI](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master.svg?style=shield&circle-token=c3fb3de524334e4566ccdae222192e585607f164)](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master) ![](https://img.shields.io/badge/version-1.0.1--rc1-blue.svg)
 
-[![CircleCI](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master.svg?style=svg&circle-token=c3fb3de524334e4566ccdae222192e585607f164)](https://circleci.com/gh/AtlantPlatform/atlant-go/tree/master)
+<p align="center">
+<img src="https://avatars3.githubusercontent.com/u/30299272?s=400&u=b11d6a41091e04d7e133a758e6efb917371b981d&v=4" width="175">
+</p>
 
 ### Intro
 
-`atlant-go` is a proof-of-concept ATLANT Node implementation, which contains the distributed store of all information pertaining to PTOs (Property Token Offerings), as described in the [ATLANT white paper](https://atlant.io/assets/documents/en/Atlant_WP_publish.pdf) (beginning on page 33).
+`atlant-go` is the reference Atlant Node implementation, which contains the distributed store of all information pertaining to Properties and PTOs (Property Token Offerings).
 
 The node is designed to poll two main smart contract sets in order to fetch secure data: PTO contracts, handling property token offerings and property tokens behaviour, and KYC contracts, enabling fully compliant and transparent property token trading. The smart contract also queries the list of ATL Platform token holders and their balances.
-All of this together helps to create smooth, compliant ATLANT Platform operations and performance, thus facilitating optimal experience for all platform participants.
-As per the ATLANT White Paper, both ATL token holders and PTO token holders can derive value from operations conducted on the Platform, provided that two main requirements are met: being a verified individual (having KYC details completed and registered with ATLANT) and running an ATLANT node, which helps to secure the network by distributing PTO data globally, thus increasing redundancy.
+All of this together helps to create smooth and compliant Platform operations and performance, thus facilitating optimal experience for all Platform members.
+
+Both ATL and PTO token holders can derive value from operations conducted on the Platform, provided that two main requirements are met: 
+- being a verified individual (having KYC details completed and registered with ATLANT)
+- running Atlant Node, which helps to secure the network by distributing PTO data globally
 
 ### Setup
 
-Get a pre-built binary for your platform in [releases](https://github.com/AtlantPlatform/atlant-go/releases) section or compile manually after installing [Go](https://golang.org/dl/):
+Get a pre-built binary for your platform [in the Releases](https://github.com/AtlantPlatform/atlant-node/releases) section
 
-```
-$ go get github.com/AtlantPlatform/atlant-go
-```
+### Initialization
 
-This operation will consume ~1 GB of hard drive space, the most heavy download will be go-ethereum dependency.
-
-### Initialisation
-
-Prior to node startup, you should initialise it:
+Prior to node startup, you should initialize it:
 
 ```
 $ atlant-go -T init
@@ -44,8 +43,10 @@ Options:
       --warmup                 Allocate some time for IPFS to warmup and find peers. (env $AN_FS_WARMUP_DUR) (default "5s")
   -L, --fs-listen-addr         Sets IPFS listen address to communicate with peers. (env $AN_FS_LISTEN_ADDR) (default "0.0.0.0:33770")
   -W, --web-listen-addr        Sets webserver listen address for public API. (env $AN_WEB_LISTEN_ADDR) (default "0.0.0.0:33780")
+      --cluster-enabled        Enable cluster discovery (experimental). (env $AN_CLUSTER_ENABLED) (default "false")
+  -C, --cluster-name           Specifies cluster name. (env $AN_CLUSTER_NAME)
   -N, --fs-network-profile     Sets IPFS network profile. Available: default, server, no-modify. (env $AN_FS_NETWORK_PROFILE) (default "default")
-  -T, --testnet                Switch node into testing mode, it runs in a seprate testnet environment. (env $AN_TESTNET_ENABLED)
+  -T, --testnet                Switch node into testing mode, it runs in a separate testnet environment. (env $AN_TESTNET_ENABLED)
       --testnet-key            Override the default testnet key with yours (generate it using atlant-keygen). (env $AN_TESTNET_KEY)
       --testnet-auth-domains   Specify additional DNS authority domains for a testnet environment. (env $AN_TESTNET_DOMAINS)
   -E, --ethereum-wallet        Specify Ethereum wallet to associate with work done in the session. (env $AN_ETHEREUM_WALLET)
@@ -60,28 +61,12 @@ Run 'atlant-go COMMAND --help' for more information on a command.
 
 ### Running in a testnet
 
-The node must be initialised with `-T` flag beforehand. When running a node, specify your Ethereum address to participate in receiving a bonus from each successful PTO. The `-T` flag is not required, the testnet state will be detected from configs.
+The node must be initialized with `-T` flag beforehand. When running a node, specify your Ethereum address to participate in receiving a bonus from each successful PTO. The `-T` flag is not required, the testnet state will be detected from configs.
 
 ```
 $ atlant-go -E 0xa936055b4c9b4a1213e64b7fc8c7ff295939ce71
 INFO[0000] ATLANT TestNet welcomes you!
 INFO[0000] atlant-go node is starting
-```
-
-If you want to start your own net, generate a new key with `atlant-keygen`:
-
-```
-$ go get github.com/AtlantPlatform/cmd/atlant-keygen
-$ atlant-keygen net
-0467345b7004890e5b7d325316d3ab15a6a20e1e34ec78b0d3abbdcd86793859
-```
-
-Then supply it when initialising a node:
-
-```
-export AN_TESTNET_KEY=0467345b7004890e5b7d325316d3ab15a6a20e1e34ec78b0d3abbdcd86793859
-$ atlant-go -T init
-$ atlant-go -E 0xa936055b4c9b4a1213e64b7fc8c7ff295939ce71
 ```
 
 ### API
@@ -132,43 +117,8 @@ For all Ethereum info methods above, you can specify any specific account addres
 * `GET /api/v1/logs` — lists all available log files, each log file is rotated daily;
 * `GET /api/v1/log/:year/:month/:day` — access a specific log file by day, e.g. `/2018/04/23`.
 
-### Lite CLI
-
-`atlant-lite` implements a light client for the network, allowing to browse and upload files by calling the API of a full node.
-
-```
-$ go get github.com/AtlantPlatform/atlant-go/cmd/atlant-lite
-
-$ atlant-lite
-
-Usage: atlant-lite [OPTIONS] COMMAND [arg...]
-
-Options:
-  -A, --addr   Full node address (default "localhost:33780")
-
-Commands:
-  ping         Ping node and get its ID
-  version      Get node version
-  put          Put an object into the store
-  get          Get object contents from the store
-  meta         Get object meta data from the store
-  delete       Delete object from a store
-  versions     List all object versions
-  ls           List all objects and sub-directories in a prefix
-
-Run 'atlant-lite COMMAND --help' for more information on a command.
-```
-
-To make calls into the official testet, use either node address or an alias ("testnet" for any node, "testnetN" for node N), e.g.
-
-```
-$ atlant-lite -A testnet version
-1.0.0-rc4
-```
-
-
 ### License
 
 Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 Use of this source code is governed by Microsoft Reference Source
-License (MS-RSL) that can be found in the [LICENSE](/LICENSE) file.
+License (MS-RSL) that can be found in the [LICENSE](/LICENSE.md/LICENSE.md) file.
