@@ -1,6 +1,6 @@
 // Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
-// Use of this source code is governed by Microsoft Reference Source
-// License (MS-RSL) that can be found in the LICENSE file.
+// Use of this source code is governed by BSD-3-Clause "New" or "Revised"
+// License (BSD-3-Clause) that can be found in the LICENSE file.
 
 package ethfw
 
