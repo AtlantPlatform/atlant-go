@@ -1,6 +1,6 @@
 // Copyright 2017-2021 Digital Asset Exchange Limited. All rights reserved.
-// Use of this source code is governed by BSD 3-Clause "New" or "Revised"
-// License (BSD-3) that can be found in the LICENSE file.
+// Use of this source code is governed by BSD-3-Clause "New" or "Revised"
+// License (BSD-3-Clause) that can be found in the LICENSE file.
 
 package main
 
